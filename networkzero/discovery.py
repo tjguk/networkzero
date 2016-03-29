@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os, sys
 import atexit
 import csv
@@ -9,18 +10,16 @@ import threading
 import time
 
 import zmq
-context = zmq.Context()
 
-from . import core
+import .config
+from .core import context
 from .logging import logger
 
-ENCODING = "utf-8"
-
 def unpack(message):
-    return json.loads(message.decode(ENCODING))
+    return json.loads(message.decode(config.ENCODING))
 
 def pack(message):
-    return json.dumps(message).encode(ENCODING)
+    return json.dumps(message).encode(config.ENCODING)
     
 class Beacon(threading.Thread):
     
@@ -150,10 +149,15 @@ class Beacon(threading.Thread):
         t0 = time.time()
         while not self._stop_event.wait(0):
             self.check_for_commands(wait=False)
-            self.check_for_adverts()
+            #
+            # Advertise before checking for adverts
+            # so that an advert called and checked within
+            # the same cycle will be found
+            #
             if time.time() > t0 + self.interval_secs:
                 self.advertise_names()
                 t0 = time.time()
+            self.check_for_adverts()
         logger.info("Ending discovery")
                 
 _beacon = None
