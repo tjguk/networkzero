@@ -37,6 +37,8 @@ Network Zero which depends on ZeroMQ and allows you to:
 
 * Publish / Subscribe
 
+* Switch painlessly between one and more than one machine
+
 Services
 --------
 
@@ -47,6 +49,8 @@ then you need some way of knowing easily what IP or name it has.
 If you're using DHCP (and you probably are) then you can't even write the IP 
 on a sticky label. This can be as true for a classroom laptop set as much as 
 it is for a Raspberry Pi lab.
+
+In addition, the services may be run on the same or a different box.
 
 In the robot example above we have two "services": the robot RPi and
 the controller laptop. They need to find and talk to each other without knowing
