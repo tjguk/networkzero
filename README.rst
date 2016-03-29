@@ -124,14 +124,16 @@ work through things:
 address below refers to an IP:Port string eg "192.168.1.5:4567"
 
 Discovery
+~~~~~~~~~
 
-* advertise(name, port[, ip])
+* advertise(name, address)
 
 * address = discover(name)
 
 * unadvertise(name[, wait_for_secs=SHORT_WAIT])
 
 Messaging
+~~~~~~~~~
 
 * send_command(address, command)
 
@@ -146,4 +148,30 @@ Messaging
 * publish(address, news)
 
 * wait_for_news(address[, pattern=EVERYTHING][, wait_for_secs=FOREVER])
+
+Questions to be answered
+------------------------
+
+* Do we want to allow multiple services to register under the same name?
+
+  This sounds sort of neat, allowing for load-balancing etc. But it raises
+  all sorts of complications in the code especially when one of them is removed.
+  Although the implementation as I write allows for this, I think on mature reflection
+  that it is best left out of a simple package like this.
+  
+* What happens if the process hosting the Beacon shuts down before the others do
+
+  This is actually less of a problem than it sounds. There are three situations I
+  can think of:
+  
+  1) A new service starts up and want to find an existing service -- this will fail
+     because the existing adverts are lost.
+  
+  2) An existing service wants to use another existing service whose address it has
+     previously discovered. This will succeed as long as it no needs to discover
+     the address of a named service.
+     
+  3) An existing service attempts to unadvertise itself, typically on shutdown. This
+     will fail, but that failure can be mitigated by having the unadvertise code run
+     with a timeout and simply warn if there's no response.
 

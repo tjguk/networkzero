@@ -16,9 +16,9 @@
 """
 import zmq
 
-import .config
+from . import config
 from .core import context
-import .exc
+from . import exc
 from .logging import logger
 
 #
@@ -60,10 +60,10 @@ def wait_for_request(address, wait_for_secs=config.FOREVER):
 def send_reply(address, reply):
     raise NotImplementedError
 
-def publish(address, news):
+def publish_news(address, news):
     raise NotImplementedError
 
-def wait_for_news(address, pattern=config.EVERYTHING, wait_for_secs=config.FOREVER)
+def wait_for_news(address, pattern=config.EVERYTHING, wait_for_secs=config.FOREVER):
     raise NotImplementedError
 
 _sockets = Sockets()

@@ -11,7 +11,7 @@ import time
 
 import zmq
 
-import .config
+from . import config
 from .core import context
 from .logging import logger
 
@@ -55,13 +55,13 @@ class Beacon(threading.Thread):
     # Commands available via RPC are methods whose
     # name starts with "do_"
     #
-    def do_advertise(self, name, port):
+    def do_advertise(self, name, port, ip=None):
         logger.debug("Advertise %s on %s", name, port)
         with self._lock:
             self._services_to_advertise.setdefault(name, set()).add(port)
         return name + "!!"
     
-    def do_unadvertise(self, name, port):
+    def do_unadvertise(self, name, port, ip=None):
         logger.debug("Unadvertise %s on %s", name, port)
         
         with self._lock:
@@ -181,15 +181,24 @@ def _rpc(action, *args):
         socket.send(pack([action] + list(args)))
         return unpack(socket.recv())
 
-def advertise(name, port, interface=None):
+def split_address(address):
+    if ":" in address:
+        ip, _, port = address.partition(":")
+    else:
+        ip, port = None, address
+    return ip, port
+
+def advertise(name, address):
     start_beacon()
-    result = _rpc("advertise", name, port)
-    atexit.register(unadvertise, name, port, interface)
+    ip, port = split_address(str(address))
+    result = _rpc("advertise", name, port, ip)
+    atexit.register(unadvertise, name, port, ip)
     return result
 
-def unadvertise(name, port, interface=None):
+def unadvertise(name, address):
     start_beacon()
-    return _rpc("unadvertise", name, port)
+    ip, port = split_address(str(address))
+    return _rpc("unadvertise", name, port, ip)
     
 def discover(name, wait_for_secs=-1):
     start_beacon()
