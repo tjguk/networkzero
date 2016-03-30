@@ -163,7 +163,7 @@ Questions to be answered
   Although the implementation as I write allows for this, I think on mature reflection
   that it is best left out of a simple package like this.
   
-* What happens if the process hosting the Beacon shuts down before the others do
+* What happens if the process hosting the Beacon shuts down before the others do?
 
   This is actually less of a problem than it sounds. There are three situations I
   can think of:
@@ -179,3 +179,10 @@ Questions to be answered
      will fail, but that failure can be mitigated by having the unadvertise code run
      with a timeout and simply warn if there's no response.
 
+* Do we need command as well as request?
+
+  Perhaps not: under the covers, command is implemented as a request which swallows
+  its reply. (Possibly warning if none arrives within a short space of time). The
+  idea behind it is that it's likely to be such a common usage pattern that people
+  will ultimately re-implement it anyway.
+  
