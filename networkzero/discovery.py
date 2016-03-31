@@ -14,6 +14,7 @@ import zmq
 
 from . import config
 from . import core
+from . import sockets
 from .logging import logger
 
 def unpack(message):
@@ -187,12 +188,12 @@ def _rpc(action, *args):
         socket.send(pack([action] + list(args)))
         return unpack(socket.recv())
 
-def advertise(name, address):
+def advertise(name, address=None):
     start_beacon()
     address = core.address(address)
-    result = _rpc("advertise", name, address)
+    _rpc("advertise", name, address)
     atexit.register(unadvertise, name, address)
-    return result
+    return address
 
 def unadvertise(name, address):
     start_beacon()

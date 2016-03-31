@@ -8,13 +8,17 @@ context = zmq.Context()
 from . import exc
 from .logging import logger
 
+#
+# Ports in the range 0xc000..0xffff are reserved
+# for dynamic allocation
+#
+PORT_POOL = set(range(0xC000, 0X10000))
+
 def address(address=None):
     """Take one of a number if things which can be treated as a nw0
     address and return a valid IP:Port string.
     """
-    if address is None:
-        address = ""
-    address = str(address).strip()
+    address = str(address or "").strip()
     if ":" in address:
         ip, _, port = address.partition(":")
     else:
@@ -22,8 +26,8 @@ def address(address=None):
             ip, port = "", address
         else:
             ip, port = address, ""
-    if ip == "*":
-        ip = "0.0.0.0"
+    if not port or not int(port):
+        port = PORT_POOL.pop()
     
     #
     # An ip of None will return 127.0.0.1; an ip of "" will return the first
