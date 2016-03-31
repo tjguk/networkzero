@@ -58,22 +58,26 @@ class Beacon(threading.Thread):
     #
     def do_advertise(self, name, address):
         logger.debug("Advertise %s on %s", name, address)
+        
         with self._lock:
-            if name in self._services_to_advertise:
-                logger.warn("Service %s already exists", name)
-                return None
-            else:
-                self._services_to_advertise[name] = address
-                return name
+            address_found = self._services_to_advertise.get(name)
+        
+        if address_found:
+            logger.warn("Service %s already exists on %s", name, address_found)
+            return None
+        else:
+            with self._lock:
+                self._services_to_advertise[name] = core.address(address)
+            return name
     
     def do_unadvertise(self, name, address):
         logger.debug("Unadvertise %s on %s", name, address)
         
         with self._lock:
-            address = self._services_to_advertise.get(name)
+            address_found = self._services_to_advertise.get(name)
         
-        if not address:
-            logger.warn("Not currently advertising %s on %s", name, address)
+        if not address_found:
+            logger.warn("Not currently advertising %s on %s", name, address_found)
             return
 
         with self._lock:
@@ -85,8 +89,10 @@ class Beacon(threading.Thread):
         while True:
             with self._lock:
                 discovered = self._services_found.get(name)
-                if discovered:
-                    return discovered
+            if discovered:
+                return discovered
+            else:
+                time.sleep(0.1)
             if time.time() > t1:
                 logger.warn("%s not discovered after %s secs", name, wait_for_secs)
                 return None
@@ -131,17 +137,18 @@ class Beacon(threading.Thread):
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
         service_name, service_address = unpack(message)
-        service_ip, _  = source
-        logger.debug("Advert received from %s for %s on %s", service_ip, service_name, service_address)
+        logger.debug("Advert received for %s on %s", service_name, service_address)
         with self._lock:
-            self._services_found.setdefault(service_name, set()).add((service_ip, service_address))
+            self._services_found[service_name] = service_address
 
     def advertise_names(self):
         with self._lock:
-            for service_name, service_address in self._services_to_advertise.items():
-                logger.debug("Advertising %s on %s", service_name, service_address)
-                message = pack([service_name, service_address])
-                self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
+            services = list(self._services_to_advertise.items())
+        
+        for service_name, service_address in services:
+            logger.debug("Advertising %s on %s", service_name, service_address)
+            message = pack([service_name, service_address])
+            self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
 
     def run(self):
         logger.info("Starting discovery")

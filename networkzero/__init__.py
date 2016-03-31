@@ -4,3 +4,4 @@ from .messaging import (
     send_request, wait_for_request, send_reply, 
     publish_news, wait_for_news
 )
+from .core import address

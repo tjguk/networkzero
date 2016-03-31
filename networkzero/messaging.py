@@ -21,23 +21,6 @@ from . import core
 from . import exc
 from .logging import logger
 
-class BaseSocket:
-    
-    def __init__(self, address):
-        self.address = address
-    
-class RequestSocket(BaseSocket):
-    
-    def __init__(self, address, type):
-        super().__init__(address)
-        self.type = type
-
-class ReplySocket(BaseSocket):
-    
-    def __init__(self, address, type):
-        super().__init__(address)
-        self.type = type
-
 #
 # Global mapping from address to socket. When a socket
 # is needed, its address (ip:port) is looked up here. If
@@ -55,27 +38,28 @@ class Sockets:
         """Create or retrieve a socket of the right type, already connected
         to the address
         """
-        socket = self._sockets.get(address)
+        caddress = core.address(address)
+        socket = self._sockets.get(caddress)
         if socket is not None:
             if socket.type != type:
-                raise exc.SocketAlreadyExistsError(address, type, socket.type)
+                raise exc.SocketAlreadyExistsError(caddress, type, socket.type)
         else:
-            socket = self._sockets[address] = core.context.socket(type)
+            socket = self._sockets[caddress] = core.context.socket(type)
             if type in (zmq.REQ,):
-                socket.connect("tcp://%s" % address)
+                socket.connect("tcp://%s" % caddress)
             elif type in (zmq.REP,):
-                socket.bind("tcp://%s" % address)
+                socket.bind("tcp://%s" % caddress)
             if type in (zmq.REQ, zmq.REP):
                 self._poller.register(socket)
         return socket
     
     def _receive_with_timeout(self, socket, timeout_secs):
         if timeout_secs is config.FOREVER:
-            return socket.recv()
+            return socket.recv_string(encoding=config.ENCODING)
         
         sockets = dict(self._poller.poll(1000 * timeout_secs))
         if socket in sockets:
-            return socket.recv()
+            return socket.recv_string(encoding=config.ENCODING)
         else:
             raise SocketTimedOutError
 
@@ -85,12 +69,12 @@ class Sockets:
         
     def send_request(self, address, request, wait_for_reply_secs=config.FOREVER):
         socket = self.get_socket(address, zmq.REQ)
-        socket.send(request)
+        socket.send_string(request, encoding=config.ENCODING)
         return self._receive_with_timeout(socket, wait_for_reply_secs)
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, zmq.REP)
-        return socket.send(reply)
+        return socket.send_string(reply, encoding=config.ENCODING)
 
 def send_request(address, request, wait_for_reply_secs=config.FOREVER):
     return _sockets.send_request(address, request, wait_for_reply_secs)
