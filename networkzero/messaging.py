@@ -10,7 +10,7 @@
 
 * send_response(address, response)
 
-* publish(address, news)
+* publish_news(address, news)
 
 * wait_for_news(address[, pattern=EVERYTHING, wait_for_secs=FOREVER])
 """
@@ -20,6 +20,21 @@ from . import config
 from . import core
 from . import exc
 from .logging import logger
+
+class Socket(object):
+
+    def __init__(self, socket):
+        self._socket = socket
+    
+    def __getattr__(self, attr):
+        return getattr(self._socket, attr)
+    
+    def __setattr__(self, attr, value):
+        setattr(self._socket, attr, value)
+    
+    def _get_address(self):
+        return urllib.parse.parse(self._socket.last_endpoint).netloc
+    address = property(_get_address)
 
 #
 # Global mapping from address to socket. When a socket
@@ -34,23 +49,35 @@ class Sockets:
         self._sockets = {}
         self._poller = zmq.Poller()
     
-    def get_socket(self, address, type):
+    def get_socket(self, type, address=None):
         """Create or retrieve a socket of the right type, already connected
         to the address
         """
         caddress = core.address(address)
+
         socket = self._sockets.get(caddress)
         if socket is not None:
-            if socket.type != type:
+            if socket.type == type:
+                return socket
+            else:
                 raise exc.SocketAlreadyExistsError(caddress, type, socket.type)
-        else:
-            socket = self._sockets[caddress] = core.context.socket(type)
-            if type in (zmq.REQ,):
-                socket.connect("tcp://%s" % caddress)
-            elif type in (zmq.REP,):
-                socket.bind("tcp://%s" % caddress)
-            if type in (zmq.REQ, zmq.REP):
-                self._poller.register(socket)
+        
+        socket = Socket(core.context.socket(type))
+        ip, _, port = caddress.partition(":")
+        if port == "0":
+            port = socket.bind_to_random_port("tcp://%s" % ip)
+            caddress = "%s:%s" % (ip, port)
+            socket.unbind("tcp://%s" % caddress)
+        
+        if type in (zmq.REQ,):
+            socket.connect("tcp://%s" % caddress)
+        elif type in (zmq.REP,):
+            socket.bind("tcp://%s" % caddress)
+        if type in (zmq.REQ, zmq.REP):
+            self._poller.register(socket)
+
+        socket.address = core.socket_address(socket)
+        self._sockets[caddress] = socket
         return socket
     
     def _receive_with_timeout(self, socket, timeout_secs):
