@@ -8,14 +8,17 @@ from .logging import logger
 
 class Socket(zmq.Socket):
 
+    def __repr__(self):
+        return "<Socket %s on %s>" % (id(self), getattr(self, "address", "<No address>"))
+
     def _get_address(self):
         return self._address
     def _set_address(self, address):
         self.__dict__['_address'] = address
-        tcp_address = "tcp://%s" % self.address
+        tcp_address = "tcp://%s" % address
         if self.type in (zmq.REQ,):
             self.connect(tcp_address)
-        elif type in (zmq.REP,):
+        elif self.type in (zmq.REP,):
             self.bind(tcp_address)
     address = property(_get_address, _set_address)
 
@@ -45,9 +48,14 @@ class Sockets:
         """
         caddress = core.address(address)
         if (caddress, type) not in self._sockets:
-            socket = self._sockets[(caddress, type)] = context.socket(type)
+            socket = context.socket(type)
             socket.address = caddress
             self._poller.register(socket)
+            #
+            # Do this last so that an exception earlier will result
+            # in the socket not being cached
+            #
+            self._sockets[(caddress, type)] = socket
         return self._sockets[(caddress, type)]
     
     def _receive_with_timeout(self, socket, timeout_secs):
@@ -60,14 +68,23 @@ class Sockets:
         else:
             raise exc.SocketTimedOutError
 
-    def wait_for_request(self, address, wait_for_secs=config.FOREVER):
+    def wait_for_message(self, address, wait_for_secs=config.FOREVER):
         socket = self.get_socket(address, zmq.REP)
-        return self._receive_with_timeout(socket, wait_for_secs)
+        logger.debug("socket %s waiting for request", socket)
+        try:
+            return self._receive_with_timeout(socket, wait_for_secs)
+        except exc.SocketTimedOutError:
+            logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
+            return None
         
-    def send_request(self, address, request, wait_for_reply_secs=config.FOREVER):
+    def send_message(self, address, request, wait_for_reply_secs=config.FOREVER):
         socket = self.get_socket(address, zmq.REQ)
         socket.send_string(request, encoding=config.ENCODING)
-        return self._receive_with_timeout(socket, wait_for_reply_secs)
+        try:
+            return self._receive_with_timeout(socket, wait_for_reply_secs)
+        except exc.SocketTimedOutError:
+            logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
+            return None            
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, zmq.REP)

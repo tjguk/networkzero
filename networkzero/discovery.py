@@ -138,7 +138,7 @@ class Beacon(threading.Thread):
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
         service_name, service_address = unpack(message)
-        logger.debug("Advert received for %s on %s", service_name, service_address)
+        #~ logger.debug("Advert received for %s on %s", service_name, service_address)
         with self._lock:
             self._services_found[service_name] = service_address
 
@@ -147,7 +147,7 @@ class Beacon(threading.Thread):
             services = list(self._services_to_advertise.items())
         
         for service_name, service_address in services:
-            logger.debug("Advertising %s on %s", service_name, service_address)
+            #~ logger.debug("Advertising %s on %s", service_name, service_address)
             message = pack([service_name, service_address])
             self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
 
@@ -176,9 +176,11 @@ def start_beacon():
         logger.debug("About to start beacon")
         try:
             _beacon = Beacon()
-        except:
-            logger.exception("Unable to start beacon")
-            _beacon = _remote_beacon
+        except WindowsError as error:
+            if error.errno == 10048:
+                _beacon = _remote_beacon
+            else:
+                raise
         else:
             _beacon.start()
 

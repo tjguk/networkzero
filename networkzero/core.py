@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import random
 import socket
 
 from . import exc
@@ -8,7 +9,7 @@ from .logging import logger
 # Ports in the range 0xc000..0xffff are reserved
 # for dynamic allocation
 #
-PORT_POOL = set(range(0xC000, 0X10000))
+PORT_POOL = list(range(0xC000, 0X10000))
 
 def address(address=None):
     """Take one of a number if things which can be treated as a nw0
@@ -23,6 +24,7 @@ def address(address=None):
         else:
             ip, port = address, ""
     if not port or not int(port):
+        random.shuffle(PORT_POOL)
         port = PORT_POOL.pop()
     
     #
