@@ -6,20 +6,13 @@ from . import core
 from . import exc
 from .logging import logger
 
-class Socket(object):
+class Socket(zmq.Socket):
 
-    def __init__(self, socket):
-        self.__dict__['_socket'] = socket
-    
-    def __getattr__(self, attr):
-        return getattr(self._socket, attr)
-    
-    def __setattr__(self, attr, value):
-        setattr(self._socket, attr, value)
-    
     def _get_address(self):
-        return urllib.parse.parse(self._socket.last_endpoint).netloc
+        return urllib.parse.parse(self.last_endpoint).netloc
     address = property(_get_address)
+
+core.context._socket_class = Socket
 
 #
 # Global mapping from address to socket. When a socket
@@ -46,8 +39,8 @@ class Sockets:
                 return socket
             else:
                 raise exc.SocketAlreadyExistsError(caddress, type, socket.type)
-        
-        socket = Socket(core.context.socket(type))
+
+        socket = core.context.socket(type)
         ip, _, port = caddress.partition(":")
         if port == "0":
             port = socket.bind_to_random_port("tcp://%s" % ip)
