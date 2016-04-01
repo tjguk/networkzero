@@ -1,0 +1,5 @@
+pyzmq
+sphinx
+tox
+pytest
+pytest-cov
