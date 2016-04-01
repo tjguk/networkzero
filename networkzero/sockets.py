@@ -8,13 +8,16 @@ from .logging import logger
 
 class Socket(zmq.Socket):
 
-    def __init__(self, address, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.address = address
+    def _get_address(self):
+        return self._address
+    def _set_address(self, address):
+        self.__dict__['_address'] = address
+        tcp_address = "tcp://%s" % self.address
         if self.type in (zmq.REQ,):
-            socket.connect("tcp://%s" % self.address)
+            self.connect(tcp_address)
         elif type in (zmq.REP,):
-            socket.bind("tcp://%s" % self.address)
+            self.bind(tcp_address)
+    address = property(_get_address, _set_address)
 
 class Context(zmq.Context):
     
@@ -43,6 +46,7 @@ class Sockets:
         caddress = core.address(address)
         if (caddress, type) not in self._sockets:
             socket = self._sockets[(caddress, type)] = context.socket(type)
+            socket.address = caddress
             self._poller.register(socket)
         return self._sockets[(caddress, type)]
     
@@ -70,3 +74,6 @@ class Sockets:
         return socket.send_string(reply, encoding=config.ENCODING)
 
 _sockets = Sockets()
+
+def get_socket(address, type):
+    return _sockets.get_socket(address, type)
