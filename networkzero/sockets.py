@@ -8,11 +8,19 @@ from .logging import logger
 
 class Socket(zmq.Socket):
 
-    def _get_address(self):
-        return urllib.parse.parse(self.last_endpoint).netloc
-    address = property(_get_address)
+    def __init__(self, address, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.address = address
+        if self.type in (zmq.REQ,):
+            socket.connect("tcp://%s" % self.address)
+        elif type in (zmq.REP,):
+            socket.bind("tcp://%s" % self.address)
 
-core.context._socket_class = Socket
+class Context(zmq.Context):
+    
+    _socket_class = Socket
+
+context = Context()
 
 #
 # Global mapping from address to socket. When a socket
@@ -29,33 +37,14 @@ class Sockets:
     
     def get_socket(self, address, type):
         """Create or retrieve a socket of the right type, already connected
-        to the address
+        to the address. Address (ip:port) must be fully specified at this
+        point. core.address can be used to generate an address.
         """
         caddress = core.address(address)
-
-        socket = self._sockets.get(caddress)
-        if socket is not None:
-            if socket.type == type:
-                return socket
-            else:
-                raise exc.SocketAlreadyExistsError(caddress, type, socket.type)
-
-        socket = core.context.socket(type)
-        ip, _, port = caddress.partition(":")
-        if port == "0":
-            port = socket.bind_to_random_port("tcp://%s" % ip)
-            caddress = "%s:%s" % (ip, port)
-            socket.unbind("tcp://%s" % caddress)
-        
-        if type in (zmq.REQ,):
-            socket.connect("tcp://%s" % caddress)
-        elif type in (zmq.REP,):
-            socket.bind("tcp://%s" % caddress)
-        if type in (zmq.REQ, zmq.REP):
-            self._poller.register(socket._socket)
-
-        self._sockets[caddress] = socket
-        return socket
+        if (caddress, type) not in self._sockets:
+            socket = self._sockets[(caddress, type)] = context.socket(type)
+            self._poller.register(socket)
+        return self._sockets[(caddress, type)]
     
     def _receive_with_timeout(self, socket, timeout_secs):
         if timeout_secs is config.FOREVER:

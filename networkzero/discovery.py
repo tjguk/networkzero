@@ -46,7 +46,7 @@ class Beacon(threading.Thread):
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
         
-        self.rpc = core.context.socket(zmq.REP)
+        self.rpc = sockets.context.socket(zmq.REP)
         self.rpc.bind("tcp://*:%s" % self.rpc_port)
 
     def stop(self):
@@ -183,7 +183,7 @@ def start_beacon():
             _beacon.start()
 
 def _rpc(action, *args):
-    with core.context.socket(zmq.REQ) as socket:
+    with sockets.context.socket(zmq.REQ) as socket:
         socket.connect("tcp://localhost:%s" % Beacon.rpc_port)
         socket.send(pack([action] + list(args)))
         return unpack(socket.recv())

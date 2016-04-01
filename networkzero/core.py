@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 import socket
-import urllib.parse
-
-import zmq
-context = zmq.Context()
 
 from . import exc
 from .logging import logger
@@ -35,7 +31,7 @@ def address(address=None):
     #
     try:
         addrinfo = socket.getaddrinfo(ip, port, socket.AF_INET)
-    except socket.gaierror as exc:
+    except socket.gaierror as exception:
         logger.exception("Invalid Address %s", address)
         raise exc.InvalidAddressError("Invalid address: %s" % address)
     
@@ -43,6 +39,3 @@ def address(address=None):
         return "%s:%s" % addrinfo[-1]
     else:
         raise exc.InvalidAddressError("Invalid address: %s" % address)
-
-def socket_address(socket):
-    return urllib.parse.urlparse(socket.last_endpoint).netloc

@@ -106,7 +106,8 @@ Design Guidelines
   educational setting (classroom, Raspberry Jam etc.)
   
 * If you need more than this, you'll want to drop down to ZeroMQ itself,
-  or some other library, and implement your own.
+  or some other library, and implement your own. Or at least use the
+  internals of networkzero directly.
 
 * The preference is for module-level functions rather than objects.
   (Behind the scenes, global object caches are used)
@@ -128,28 +129,6 @@ Design Guidelines
 * All useful functions & constants are exported from the root of the package
   so either "import networkzero as nw0" or "from networkzero import *"
   will provide the whole of the public API.
-
-Possible Questions
-------------------
-
-* Do you have to use ZeroMQ? Why not avoid dependencies?
-
-  There's nothing in the design which requires ZeroMQ. The API contract
-  hides the implementation. However ZeroMQ does what we need and is 
-  available cross-platform with Python bindings.
-  
-* Why not use [some zeroconf implementation]?
-
-  This is somewhat the converse of the ZeroMQ question above. And the answer
-  is similar: there's nothing which precludes the use of using a zeroconf
-  solution on a given platform. But cross-platform support is spotty, and
-  the services are more designed to support, eg, printer discovery and
-  machine discovery. What we're after is a little more ad hoc.
-  
-  The discovery API is simply advertise / discover. If it turns out that 
-  those can be implemented more simply and/or robustly on top of a zeroconf
-  service -- or some other existing library -- then we can switch to that
-  under the covers.
 
 Intended API
 ------------
@@ -187,6 +166,25 @@ Messaging
 
 Questions to be answered
 ------------------------
+
+* Do you have to use ZeroMQ? Why not avoid dependencies?
+
+  There's nothing in the design which requires ZeroMQ. The API contract
+  hides the implementation. However ZeroMQ does what we need and is 
+  available cross-platform with Python bindings.
+  
+* Why not use [some zeroconf implementation]?
+
+  This is somewhat the converse of the ZeroMQ question above. And the answer
+  is similar: there's nothing which precludes the use of using a zeroconf
+  solution on a given platform. But cross-platform support is spotty, and
+  the services are more designed to support, eg, printer discovery and
+  machine discovery. What we're after is a little more ad hoc.
+  
+  The discovery API is simply advertise / discover. If it turns out that 
+  those can be implemented more simply and/or robustly on top of a zeroconf
+  service -- or some other existing library -- then we can switch to that
+  under the covers.
 
 * Do we want to allow multiple services to register under the same name?
 
