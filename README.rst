@@ -19,7 +19,7 @@ the robot from a laptop with a SNES-like controller attached.
 
 In both cases the use of network was very simple: send a command (START,
 STOP, LEFT etc.) possibly with one or more parameters (eg LEFT 0.5).
-Under the covers we used ZeroMQ which offers a simple but robust layer on
+Under the covers we used ZeroMQ which offers a robust layer on
 top of standard sockets. Although ZeroMQ offers a simple and consistent
 API, even that's a little too much for newcomers both to networks and
 programming.
@@ -28,7 +28,7 @@ In addition, a constant challenge was discovering the other "nodes"
 on the network in the face of DHCP changes and switching from development
 to live networks.
 
-So in the spirit of PyGame Zero and GPIO Zero, I'm attempting to offer
+So in the spirit of PyGame Zero and GPIO Zero, I'm tentatively offering
 Network Zero which depends on ZeroMQ and allows you to:
 
 * Discover services
@@ -58,13 +58,13 @@ their respective IPs in advance. This is especially true if we are developing
 using a local WiFi or even Ethernet setup but testing or running live with
 the robot itself becoming an AP.
 
-For the turntable project, we have three RPis: the turntable listens
-for commands; the detector publishes hits; and the controller sends commands
+For the turntable project, we have three RPis: the Turntable listens
+for commands; the Detector publishes hits; and the Controller sends commands
 and subscribes to hits. For development, we want to run two or more of those 
 services on the *same* box, using different processes. 
 
 NB this is a different problem to what DNS solves: we don't want to discover
-hosts, we want to discover services, and in a fairly ad hoc manner. It's
+hosts, we want to discover services, and in a fairly transparent manner. It's
 the same kind of problem which zeroconf is solving. [http://www.zeroconf.org/]
 
 Basic Offering
@@ -90,12 +90,44 @@ they are looking for.
 
 The second uses ZeroMQ socket abstractions to reduce obstacles arising from
 the order in which processes start up; and to ensure that messages arrive
-completely regardless of network latency &c.
+complete regardless of network latency &c.
 
 These two are offered independently of each other: the discovery aspect
 will leave you with an IP address and a port number. The message aspect
 needs an IP address and a port number. But you don't need one to use
 the other: it just makes it simpler.
+
+Design Guidelines
+-----------------
+
+(ie tiebreakers if we need to make a decision)
+
+* networkzero is aimed at beginners and particularly at those in an 
+  educational setting (classroom, Raspberry Jam etc.)
+  
+* If you need more than this, you'll want to drop down to ZeroMQ itself,
+  or some other library, and implement your own.
+
+* The preference is for module-level functions rather than objects.
+  (Behind the scenes, global object caches are used)
+  
+* Thread-safety is not a priority
+  
+* Code will work unchanged on one box and on several.
+
+* Code will work unchanged on Linux, OS X & Windows, assuming
+  that the pre-requisites are met (basically: recent Python & zmqlib).
+  
+* Code will work unchanged on Python 2.7 and Python 3.2+
+
+* Services are robust in the face of other services stopping & starting.
+
+* The discovery & messenger modules are uncoupled: neither relies on 
+  or knows about the internals of the other.
+  
+* All useful functions & constants are exported from the root of the package
+  so either "import networkzero as nw0" or "from networkzero import *"
+  will provide the whole of the public API.
 
 Possible Questions
 ------------------
@@ -130,7 +162,7 @@ address below refers to an IP:Port string eg "192.168.1.5:4567"
 Discovery
 ~~~~~~~~~
 
-* advertise(name, address)
+* address = advertise(name, address=None)
 
 * address = discover(name)
 
@@ -143,13 +175,13 @@ Messaging
 
 * command = wait_for_command([wait_for_secs=FOREVER])
 
-* make_request(address, question[, wait_for_response_secs=FOREVER])
+* send_request(address, question[, wait_for_response_secs=FOREVER])
 
 * question, address = wait_for_request(address, [wait_for_secs=FOREVER])
 
 * send_reply(address, reply)
 
-* publish(address, news)
+* publish_news(address, news)
 
 * wait_for_news(address[, pattern=EVERYTHING][, wait_for_secs=FOREVER])
 
@@ -160,8 +192,9 @@ Questions to be answered
 
   This sounds sort of neat, allowing for load-balancing etc. But it raises
   all sorts of complications in the code especially when one of them is removed.
-  Although the implementation as I write allows for this, I think on mature reflection
-  that it is best left out of a simple package like this.
+  Although the implementation as I write allows for this, I think on mature 
+  reflection that it is best left out of a simple package like this.
+  [UPDATE: multiple registration has been removed]
   
 * What happens if the process hosting the Beacon shuts down before the others do?
 
@@ -185,4 +218,37 @@ Questions to be answered
   its reply. (Possibly warning if none arrives within a short space of time). The
   idea behind it is that it's likely to be such a common usage pattern that people
   will ultimately re-implement it anyway.
+
+* What about multi IP addresses?
+
+  My dev machine has a VM setup with its host-only network. More plausibly
+  for the classroom it's quite possible to have, eg, an RPi connected both
+  to wired & wireless networks at the same time. At present, we're only
+  choosing one IP address. Our options seem to be:
   
+  1) Let the user deal with it: deactivate IP addresses which are not
+     wanted for the purposes (eg host-only addresses).
+    
+  2) Have some sort of config.ini which allows users to disregard or prefer
+     certain addresses or networks
+    
+  3) Allow the "address" object to be more than one address in a list.
+     These multiple addresses will then be advertised and messages sent
+     across them.
+    
+  Of course, a combination of these could be used. Just for now, we can
+  defer deciding as most machines, at least in the classroom, will have 
+  only one IP address at a time. My slight preference is for (1) as I see
+  it being fairly easy to implement and fairly transparent.
+
+* Exceptions or returning None/sentinel?
+
+  When, for example, a read times out, we could return None or some other
+  singleton sentinel to the calling code, or we could raise an exception.
+  The latter is undoubtedly more Pythonic but in my experience is harder
+  for youngsters to understand -- and the focus for this module is definitely
+  newcomers.
+  
+  Of course we to avoid an implicit exception where, eg, the user unconsciously
+  passes the None back up the chain and tries to, eg, call .strip on it,
+  thinking it'll be a string.

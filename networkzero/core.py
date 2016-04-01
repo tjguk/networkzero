@@ -45,4 +45,4 @@ def address(address=None):
         raise exc.InvalidAddressError("Invalid address: %s" % address)
 
 def socket_address(socket):
-    return urllib.parse.parse(socket.last_endpoint).netloc
+    return urllib.parse.urlparse(socket.last_endpoint).netloc

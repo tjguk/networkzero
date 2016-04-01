@@ -9,7 +9,7 @@ from .logging import logger
 class Socket(object):
 
     def __init__(self, socket):
-        self._socket = socket
+        self.__dict__['_socket'] = socket
     
     def __getattr__(self, attr):
         return getattr(self._socket, attr)
@@ -59,9 +59,8 @@ class Sockets:
         elif type in (zmq.REP,):
             socket.bind("tcp://%s" % caddress)
         if type in (zmq.REQ, zmq.REP):
-            self._poller.register(socket)
+            self._poller.register(socket._socket)
 
-        socket.address = core.socket_address(socket)
         self._sockets[caddress] = socket
         return socket
     
@@ -73,7 +72,7 @@ class Sockets:
         if socket in sockets:
             return socket.recv_string(encoding=config.ENCODING)
         else:
-            raise SocketTimedOutError
+            raise exc.SocketTimedOutError
 
     def wait_for_request(self, address, wait_for_secs=config.FOREVER):
         socket = self.get_socket(address, zmq.REP)
