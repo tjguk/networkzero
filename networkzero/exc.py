@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+"""Common exceptions for networkzero
+"""
 class NetworkZeroError(Exception): 
     pass
 

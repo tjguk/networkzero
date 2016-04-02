@@ -29,10 +29,9 @@ print(nw0.send_message(echo_address, "Bob"))
 
 """
 
-from .discovery import advertise, unadvertise, discover
+from .discovery import advertise, unadvertise, discover, discover_all
 from .messenger import (
     send_command, wait_for_command, 
     send_message, wait_for_message, send_reply, 
     publish_news, wait_for_news
 )
-from .core import address

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
+_logger = logging.getLogger(__name__)
 import random
 import socket
 
 from . import exc
-from .logging import logger
 
 #
 # Ports in the range 0xc000..0xffff are reserved
@@ -34,7 +35,7 @@ def address(address=None):
     try:
         addrinfo = socket.getaddrinfo(ip, port, socket.AF_INET)
     except socket.gaierror as exception:
-        logger.exception("Invalid Address %s", address)
+        _logger.exception("Invalid Address %s", address)
         raise exc.InvalidAddressError("Invalid address: %s" % address)
     
     for addrinfo in addrinfo:

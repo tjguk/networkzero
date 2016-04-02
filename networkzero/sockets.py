@@ -1,15 +1,24 @@
 # -*- coding: utf-8 -*-
+import logging
+_logger = logging.getLogger(__name__)
+import marshal
+
 import zmq
 
 from . import config
 from . import core
 from . import exc
-from .logging import logger
+
+def _serialise(message):
+    return marshal.dumps(message)
+
+def _unserialise(message_bytes):
+    return marshal.loads(message_bytes)
 
 class Socket(zmq.Socket):
 
     def __repr__(self):
-        return "<Socket %s on %s>" % (id(self), getattr(self, "address", "<No address>"))
+        return "<Socket %x on %s>" % (id(self), getattr(self, "address", "<No address>"))
 
     def _get_address(self):
         return self._address
@@ -60,35 +69,35 @@ class Sockets:
     
     def _receive_with_timeout(self, socket, timeout_secs):
         if timeout_secs is config.FOREVER:
-            return socket.recv_string(encoding=config.ENCODING)
+            return socket.recv()
         
         sockets = dict(self._poller.poll(1000 * timeout_secs))
         if socket in sockets:
-            return socket.recv_string(encoding=config.ENCODING)
+            return socket.recv()
         else:
             raise exc.SocketTimedOutError
 
     def wait_for_message(self, address, wait_for_secs=config.FOREVER):
         socket = self.get_socket(address, zmq.REP)
-        logger.debug("socket %s waiting for request", socket)
+        _logger.debug("socket %s waiting for request", socket)
         try:
-            return self._receive_with_timeout(socket, wait_for_secs)
+            return _unserialise(self._receive_with_timeout(socket, wait_for_secs))
         except exc.SocketTimedOutError:
-            logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
+            _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
             return None
         
     def send_message(self, address, request, wait_for_reply_secs=config.FOREVER):
         socket = self.get_socket(address, zmq.REQ)
-        socket.send_string(request, encoding=config.ENCODING)
+        socket.send(_serialise(request))
         try:
-            return self._receive_with_timeout(socket, wait_for_reply_secs)
+            return _unserialise(self._receive_with_timeout(socket, wait_for_reply_secs))
         except exc.SocketTimedOutError:
-            logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
+            _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
             return None            
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, zmq.REP)
-        return socket.send_string(reply, encoding=config.ENCODING)
+        return socket.send(_serialise(reply))
 
 _sockets = Sockets()
 

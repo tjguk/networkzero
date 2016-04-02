@@ -4,7 +4,9 @@ import atexit
 import collections
 import csv
 import io
-import json
+import logging
+_logger = logging.getLogger(__name__)
+import marshal
 import random
 import socket
 import threading
@@ -15,21 +17,20 @@ import zmq
 from . import config
 from . import core
 from . import sockets
-from .logging import logger
 
 def unpack(message):
-    return json.loads(message.decode(config.ENCODING))
+    return marshal.loads(message)
 
 def pack(message):
-    return json.dumps(message).encode(config.ENCODING)
+    return marshal.dumps(message)
     
-class Beacon(threading.Thread):
+class _Beacon(threading.Thread):
     
     rpc_port = 9998
     beacon_port = 9999
     finder_timeout_secs = 0.5
     beacon_message_size = 256
-    interval_secs = 2
+    interval_secs = config.BEACON_ADVERT_FREQUENCY_SECS
     
     def __init__(self):
         super().__init__(daemon=True)
@@ -50,7 +51,7 @@ class Beacon(threading.Thread):
         self.rpc.bind("tcp://*:%s" % self.rpc_port)
 
     def stop(self):
-        logger.debug("About to stop")
+        _logger.debug("About to stop")
         self._stop_event.set()
 
     #
@@ -58,13 +59,13 @@ class Beacon(threading.Thread):
     # name starts with "do_"
     #
     def do_advertise(self, name, address):
-        logger.debug("Advertise %s on %s", name, address)
+        _logger.debug("Advertise %s on %s", name, address)
         
         with self._lock:
             address_found = self._services_to_advertise.get(name)
         
         if address_found:
-            logger.warn("Service %s already exists on %s", name, address_found)
+            _logger.warn("Service %s already exists on %s", name, address_found)
             return None
         else:
             with self._lock:
@@ -72,31 +73,41 @@ class Beacon(threading.Thread):
             return name
     
     def do_unadvertise(self, name, address):
-        logger.debug("Unadvertise %s on %s", name, address)
+        _logger.debug("Unadvertise %s on %s", name, address)
         
         with self._lock:
             address_found = self._services_to_advertise.get(name)
         
         if not address_found:
-            logger.warn("Not currently advertising %s on %s", name, address_found)
+            _logger.warn("Not currently advertising %s on %s", name, address_found)
             return
 
         with self._lock:
             del self._services_to_advertise[name]
     
     def do_discover(self, name, wait_for_secs):
-        logger.debug("Discover %s waiting for %s secs", name, wait_for_secs)
-        t1 = time.time() + wait_for_secs
-        while True:
+        _logger.debug("Discover %s waiting for %s secs", name, wait_for_secs)
+        if wait_for_secs == -1:
+            timeout_expired = lambda t: False
+        else:
+            t0 = time.time()
+            timeout_expired = lambda t: t > t0 + wait_for_secs
+                
+        while not timeout_expired(time.time()):
             with self._lock:
                 discovered = self._services_found.get(name)
             if discovered:
                 return discovered
             else:
                 time.sleep(0.1)
-            if time.time() > t1:
-                logger.warn("%s not discovered after %s secs", name, wait_for_secs)
-                return None
+        else:
+            _logger.warn("%s not discovered after %s secs", name, wait_for_secs)
+            return None
+    
+    def do_discover_all(self):
+        _logger.debug("Discover all")
+        with self._lock:
+            return list(self._services_found.items())
     
     #
     # Main loop:
@@ -120,14 +131,14 @@ class Beacon(threading.Thread):
             else:
                 raise
         
-        logger.debug("Received command %s", message)
+        _logger.debug("Received command %s", message)
         segments = unpack(message)
         action, params = segments[0], segments[1:]
         function = getattr(self, "do_" + action.lower(), None)
         if not function:
             raise NotImplementedError
         else:
-            logger.debug("Calling %s with %s", function, params)
+            _logger.debug("Calling %s with %s", function, params)
             result = function(*params)
             self.rpc.send(pack(result))
     
@@ -138,7 +149,7 @@ class Beacon(threading.Thread):
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
         service_name, service_address = unpack(message)
-        #~ logger.debug("Advert received for %s on %s", service_name, service_address)
+        #~ _logger.debug("Advert received for %s on %s", service_name, service_address)
         with self._lock:
             self._services_found[service_name] = service_address
 
@@ -147,12 +158,12 @@ class Beacon(threading.Thread):
             services = list(self._services_to_advertise.items())
         
         for service_name, service_address in services:
-            #~ logger.debug("Advertising %s on %s", service_name, service_address)
+            #~ _logger.debug("Advertising %s on %s", service_name, service_address)
             message = pack([service_name, service_address])
             self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
 
     def run(self):
-        logger.info("Starting discovery")
+        _logger.info("Starting discovery")
         t0 = time.time()
         while not self._stop_event.wait(0):
             self.check_for_commands(wait=False)
@@ -165,7 +176,7 @@ class Beacon(threading.Thread):
                 self.advertise_names()
                 t0 = time.time()
             self.check_for_adverts()
-        logger.info("Ending discovery")
+        _logger.info("Ending discovery")
                 
 _beacon = None
 _remote_beacon = object()
@@ -173,9 +184,9 @@ _remote_beacon = object()
 def start_beacon():
     global _beacon
     if _beacon is None:
-        logger.debug("About to start beacon")
+        _logger.debug("About to start beacon")
         try:
-            _beacon = Beacon()
+            _beacon = _Beacon()
         except WindowsError as error:
             if error.errno == 10048:
                 _beacon = _remote_beacon
@@ -186,7 +197,7 @@ def start_beacon():
 
 def _rpc(action, *args):
     with sockets.context.socket(zmq.REQ) as socket:
-        socket.connect("tcp://localhost:%s" % Beacon.rpc_port)
+        socket.connect("tcp://localhost:%s" % _Beacon.rpc_port)
         socket.send(pack([action] + list(args)))
         return unpack(socket.recv())
 
@@ -201,9 +212,13 @@ def unadvertise(name, address):
     start_beacon()
     return _rpc("unadvertise", name, core.address(address))
     
-def discover(name, wait_for_secs=-1):
+def discover(name, wait_for_secs=60):
     start_beacon()
     return _rpc("discover", name, wait_for_secs)
+
+def discover_all():
+    start_beacon()
+    return _rpc("discover_all")
 
 if __name__ == '__main__':
     pass
