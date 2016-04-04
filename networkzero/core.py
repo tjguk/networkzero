@@ -3,6 +3,8 @@ import logging
 import random
 import socket
 
+from . import config
+
 def get_logger(name):
     #
     # For now, this is just a hand-off to logging.getLogger
@@ -33,31 +35,52 @@ class InvalidAddressError(NetworkZeroError):
 # Ports in the range 0xc000..0xffff are reserved
 # for dynamic allocation
 #
-PORT_POOL = list(range(0xC000, 0X10000))
+PORT_POOL = list(config.DYNAMIC_PORTS)
 
 def address(address=None):
-    """Take one of a number if things which can be treated as a nw0
-    address and return a valid IP:Port string.
+    """Convert one of a number of inputs into a valid ip:port string.
+    
+    Elements which are not provided are filled in as follows:
+    * IP Address: the system is asked for the set of IP addresses associated 
+      with the machine and the first one is used.
+    * Port number: a random port is selected from the pool of dynamically-available 
+      port numbers.
+      
+    This means you can pass any of: nothing; an IP address; a port number; both
+    
+    If an IP address is supplied but is invalid from this machine, an InvalidAddressError
+    exception is raised.
+    
+    :param address: (optional) Any of: an IP address, a port number, or both
+    
+    :returns: a valid ip:port string for this machine
     """
     address = str(address or "").strip()
     if ":" in address:
         ip, _, port = address.partition(":")
-    else:
+    else:   
         if address.isdigit():
             ip, port = "", address
         else:
             ip, port = address, ""
+    
+    if port and not port.isdigit():
+        raise InvalidAddressError("Port %s must be a number" % port)
+    
     if not port or not int(port):
         random.shuffle(PORT_POOL)
         port = PORT_POOL.pop()
+    
+    if not int(port) in config.VALID_PORTS:
+        raise InvalidAddressError("Invalid port %s" % port)
     
     try:
         addrinfo = socket.getaddrinfo(ip, port, socket.AF_INET)
     except socket.gaierror as exception:
         _logger.exception("Invalid Address %s", address)
-        raise exc.InvalidAddressError("Invalid address: %s" % address)
+        raise InvalidAddressError("Invalid IP %s" % ip)
     
     for addrinfo in addrinfo:
         return "%s:%s" % addrinfo[-1]
     else:
-        raise exc.InvalidAddressError("Invalid address: %s" % address)
+        raise InvalidAddressError("Invalid address %s" % address)
