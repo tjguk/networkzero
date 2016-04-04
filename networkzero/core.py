@@ -4,7 +4,27 @@ _logger = logging.getLogger(__name__)
 import random
 import socket
 
-from . import exc
+def get_logger(name):
+    #
+    # For now, this is just a hand-off to logging.getLogger
+    # Later, though, we might want to add a null handler etc.
+    #
+    return logging.getLogger(__name__)
+
+#
+# Common exceptions
+#
+class NetworkZeroError(Exception): 
+    pass
+
+class SocketAlreadyExistsError(NetworkZeroError): 
+    pass
+
+class SocketTimedOutError(NetworkZeroError): 
+    pass
+
+class InvalidAddressError(NetworkZeroError):
+    pass
 
 #
 # Ports in the range 0xc000..0xffff are reserved

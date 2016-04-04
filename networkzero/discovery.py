@@ -5,7 +5,6 @@ import collections
 import csv
 import io
 import logging
-_logger = logging.getLogger(__name__)
 import marshal
 import random
 import socket
@@ -17,6 +16,8 @@ import zmq
 from . import config
 from . import core
 from . import sockets
+
+_logger = core.get_logger(__name__)
 
 def unpack(message):
     return marshal.loads(message)
@@ -187,8 +188,8 @@ def start_beacon():
         _logger.debug("About to start beacon")
         try:
             _beacon = _Beacon()
-        except WindowsError as error:
-            if error.errno == 10048:
+        except WindowsError as exc:
+            if exc.errno == 10048:
                 _beacon = _remote_beacon
             else:
                 raise

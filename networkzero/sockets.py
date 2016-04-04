@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
-_logger = logging.getLogger(__name__)
 import marshal
 
 import zmq
 
 from . import config
 from . import core
-from . import exc
+
+_logger = core.get_logger(__name__)
 
 def _serialise(message):
     return marshal.dumps(message)
@@ -75,14 +75,14 @@ class Sockets:
         if socket in sockets:
             return socket.recv()
         else:
-            raise exc.SocketTimedOutError
+            raise core.SocketTimedOutError
 
     def wait_for_message(self, address, wait_for_secs=config.FOREVER):
         socket = self.get_socket(address, zmq.REP)
         _logger.debug("socket %s waiting for request", socket)
         try:
             return _unserialise(self._receive_with_timeout(socket, wait_for_secs))
-        except exc.SocketTimedOutError:
+        except core.SocketTimedOutError:
             _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
             return None
         
@@ -91,7 +91,7 @@ class Sockets:
         socket.send(_serialise(request))
         try:
             return _unserialise(self._receive_with_timeout(socket, wait_for_reply_secs))
-        except exc.SocketTimedOutError:
+        except core.SocketTimedOutError:
             _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
             return None            
 

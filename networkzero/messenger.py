@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import logging
-_logger = logging.getLogger(__name__)
 from . import config
 from . import core
-from . import exc
 from . import sockets
+
+_logger = core.get_logger(__name__)
 
 """
 * send_command(address, command)
@@ -36,7 +36,7 @@ def send_reply(address, reply):
 def send_command(address, command, wait_for_reply_secs=config.FOREVER):
     try:
         reply = send_message(address, command, wait_for_reply_secs)
-    except exc.SocketTimedOutError:
+    except core.SocketTimedOutError:
         _logger.warn("No reply received for command %s to address %s", command, address)
     
     if reply != config.COMMAND_ACK:
