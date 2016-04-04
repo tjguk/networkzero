@@ -32,14 +32,14 @@ def wait_for_message(address, wait_for_secs=config.FOREVER):
 def send_reply(address, reply):
     return sockets._sockets.send_reply(address, reply)
 
-def send_command(address, command, wait_for_reply_secs=config.FOREVER):
+def send_command(address, command, wait_for_ack_secs=config.FOREVER):
     try:
-        reply = send_message(address, command, wait_for_reply_secs)
+        ack = send_message(address, command, wait_for_ack_secs)
     except core.SocketTimedOutError:
         _logger.warn("No reply received for command %s to address %s", command, address)
     
-    if reply != config.COMMAND_ACK:
-        _logger.warn("Unexpected reply %s for command %s to address %s", reply, command, address)
+    if ack != config.COMMAND_ACK:
+        _logger.warn("Unexpected reply %s for command %s to address %s", ack, command, address)
 
 def wait_for_command(address, callback, wait_for_secs=config.FOREVER):
     command = wait_for_message(address, wait_for_secs)

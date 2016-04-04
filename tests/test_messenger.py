@@ -1,3 +1,5 @@
+import contextlib
+import logging
 import multiprocessing
 import re
 import time
@@ -8,17 +10,32 @@ import pytest
 import networkzero as nw0
 nw0.core._setup_debug_logging()
 
-def echo_message(address):
+def capture_logging(logger):
+    with io.StringIO() as stream:
+        handler = logging.StreamHandler(stream)
+        handler.setFormatter("%(levelname)s %(message)s")
+        logger.addHandler(handler)
+        yield stream
+
+def support_test_send_message(address):
     import networkzero as nw0
     nw0.send_reply(address, nw0.wait_for_message(address))
 
-def check_reply(address, queue):
+def support_test_send_reply(address, queue):
     import networkzero as nw0
     import uuid
     message = uuid.uuid1().hex
     reply = nw0.send_message(address, message)
     queue.put(reply)
 
+def support_test_send_command(address, queue):
+    import networkzero as nw0
+    nw0.wait_for_command(address, queue.put)
+
+def support_wait_for_command(address, queue):
+    command = uuid.uuid1()
+    nw0.send_command(address, command)
+    
 def test_send_message():
     address = nw0.core.address()
     message = uuid.uuid1().hex
@@ -28,7 +45,7 @@ def test_send_message():
     # Then check that the message we receive back is the same as
     # the one which went out.
     #
-    p = multiprocessing.Process(target=echo_message, args=(address,), daemon=True)
+    p = multiprocessing.Process(target=support_test_send_message, args=(address,), daemon=True)
     p.start()
     reply = nw0.send_message(address, message)
     p.join()
@@ -57,10 +74,35 @@ def test_send_reply():
     # put the reply received (ie from this test) onto a mp queue
     # from which we can retrieve it and check against the message sent
     #
-    p = multiprocessing.Process(target=check_reply, args=(address, queue), daemon=True)
+    p = multiprocessing.Process(target=support_test_send_reply, args=(address, queue), daemon=True)
     p.start()
     message_received = nw0.wait_for_message(address)
     nw0.send_reply(address, message_received)
     reply = queue.get()
     p.join()
     assert reply == message_received
+
+def test_send_command():
+    address = nw0.core.address()
+    command = uuid.uuid1().hex
+    queue = multiprocessing.Queue()
+    
+    #
+    # Fire up a remote process to ack any command received.
+    #
+    p = multiprocessing.Process(target=support_test_send_command, args=(address, queue), daemon=True)
+    p.start()
+    nw0.send_command(address, command)
+    p.join()
+    assert queue.get() == command
+
+def test_wait_for_command():
+    address = nw0.core.address()
+    command_sent = uuid.uuid1().hex
+    queue = multiprocessing.Queue()
+
+    p = multiprocessing.Process(target=nw0.send_command, args=(address, command_sent), daemon=True)
+    p.start()
+    nw0.wait_for_command(address, queue.put)
+    p.join()
+    assert queue.get() == command_sent
