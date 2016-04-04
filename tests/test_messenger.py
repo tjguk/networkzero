@@ -1,4 +1,5 @@
 import contextlib
+import io
 import logging
 import multiprocessing
 import re
@@ -10,12 +11,17 @@ import pytest
 import networkzero as nw0
 nw0.core._setup_debug_logging()
 
-def capture_logging(logger):
-    with io.StringIO() as stream:
-        handler = logging.StreamHandler(stream)
-        handler.setFormatter("%(levelname)s %(message)s")
-        logger.addHandler(handler)
-        yield stream
+@contextlib.contextmanager
+def capture_logging(logger, stream):
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+    handler.setLevel(logging.WARN)
+    logger.addHandler(handler)
+    yield stream
+    logger.removeHandler(handler)
+
+def check_log(logger, pattern):
+    return bool(re.search(pattern, logger.getvalue()))
 
 def support_test_send_message(address):
     import networkzero as nw0
@@ -64,6 +70,13 @@ def test_wait_for_message():
     message_received = nw0.wait_for_message(address)
     p.join()
     assert message_received == message_sent
+
+def test_wait_for_message_with_timeout():
+    address = nw0.core.address()
+    with io.StringIO() as stream:
+        with capture_logging(logging.getLogger("networkzero"), stream):
+            nw0.wait_for_message(address, wait_for_secs=0.1)
+        assert re.search(r"WARNING Socket \<[^>]*\> timed out", stream.getvalue())
 
 def test_send_reply():
     address = nw0.core.address()
