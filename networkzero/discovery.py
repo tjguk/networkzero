@@ -68,22 +68,15 @@ class _Beacon(threading.Thread):
             _logger.warn("Service %s already exists on %s", name, address_found)
             return None
         else:
+            canonical_address = core.address(address)
             with self._lock:
-                self._services_to_advertise[name] = core.address(address)
+                self._services_to_advertise[name] = canonical_address
+                #
+                # As a shortcut, automatically "discover" any services we're advertising
+                #
+                self._services_found[name] = canonical_address
+                
             return name
-    
-    def do_unadvertise(self, name, address):
-        _logger.debug("Unadvertise %s on %s", name, address)
-        
-        with self._lock:
-            address_found = self._services_to_advertise.get(name)
-        
-        if not address_found:
-            _logger.warn("Not currently advertising %s on %s", name, address_found)
-            return
-
-        with self._lock:
-            del self._services_to_advertise[name]
     
     def do_discover(self, name, wait_for_secs):
         _logger.debug("Discover %s waiting for %s secs", name, wait_for_secs)
@@ -108,6 +101,11 @@ class _Beacon(threading.Thread):
         _logger.debug("Discover all")
         with self._lock:
             return list(self._services_found.items())
+    
+    def do_stop(self):
+        _logger.debug("Stop")
+        self.stop()
+        return None
     
     #
     # Main loop:
@@ -149,7 +147,6 @@ class _Beacon(threading.Thread):
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
         service_name, service_address = _unpack(message)
-        #~ _logger.debug("Advert received for %s on %s", service_name, service_address)
         with self._lock:
             self._services_found[service_name] = service_address
 
@@ -158,7 +155,6 @@ class _Beacon(threading.Thread):
             services = list(self._services_to_advertise.items())
         
         for service_name, service_address in services:
-            #~ _logger.debug("Advertising %s on %s", service_name, service_address)
             message = _pack([service_name, service_address])
             self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
 
@@ -177,7 +173,7 @@ class _Beacon(threading.Thread):
                 t0 = time.time()
             self.check_for_adverts()
         _logger.info("Ending discovery")
-                
+
 _beacon = None
 _remote_beacon = object()
 
@@ -205,13 +201,8 @@ def advertise(name, address=None):
     start_beacon()
     address = core.address(address)
     _rpc("advertise", name, address)
-    atexit.register(unadvertise, name, address)
     return address
 
-def unadvertise(name, address):
-    start_beacon()
-    return _rpc("unadvertise", name, core.address(address))
-    
 def discover(name, wait_for_secs=60):
     start_beacon()
     return _rpc("discover", name, wait_for_secs)
@@ -219,6 +210,12 @@ def discover(name, wait_for_secs=60):
 def discover_all():
     start_beacon()
     return _rpc("discover_all")
+
+def stop_beacon():
+    global _beacon
+    start_beacon()
+    _rpc("stop")
+    _beacon = None
 
 if __name__ == '__main__':
     pass
