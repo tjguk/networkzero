@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import logging
 import marshal
 
 import zmq

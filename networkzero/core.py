@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import logging
-_logger = logging.getLogger(__name__)
 import random
 import socket
 
@@ -9,7 +8,11 @@ def get_logger(name):
     # For now, this is just a hand-off to logging.getLogger
     # Later, though, we might want to add a null handler etc.
     #
-    return logging.getLogger(__name__)
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
+    return logger
+
+_logger = get_logger(__name__)
 
 #
 # Common exceptions
@@ -48,10 +51,6 @@ def address(address=None):
         random.shuffle(PORT_POOL)
         port = PORT_POOL.pop()
     
-    #
-    # An ip of None will return 127.0.0.1; an ip of "" will return the first
-    # IP address from socket.gethostbyname_ex("")
-    #
     try:
         addrinfo = socket.getaddrinfo(ip, port, socket.AF_INET)
     except socket.gaierror as exception:

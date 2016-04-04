@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import logging
 from . import config
 from . import core
 from . import sockets

@@ -4,7 +4,6 @@ import atexit
 import collections
 import csv
 import io
-import logging
 import marshal
 import random
 import socket
