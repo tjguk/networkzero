@@ -18,10 +18,10 @@ from . import sockets
 
 _logger = core.get_logger(__name__)
 
-def unpack(message):
+def _unpack(message):
     return marshal.loads(message)
 
-def pack(message):
+def _pack(message):
     return marshal.dumps(message)
     
 class _Beacon(threading.Thread):
@@ -132,7 +132,7 @@ class _Beacon(threading.Thread):
                 raise
         
         _logger.debug("Received command %s", message)
-        segments = unpack(message)
+        segments = _unpack(message)
         action, params = segments[0], segments[1:]
         function = getattr(self, "do_" + action.lower(), None)
         if not function:
@@ -140,7 +140,7 @@ class _Beacon(threading.Thread):
         else:
             _logger.debug("Calling %s with %s", function, params)
             result = function(*params)
-            self.rpc.send(pack(result))
+            self.rpc.send(_pack(result))
     
     def check_for_adverts(self):
         events = dict(self.poller.poll(1000 * self.finder_timeout_secs))
@@ -148,7 +148,7 @@ class _Beacon(threading.Thread):
             return
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
-        service_name, service_address = unpack(message)
+        service_name, service_address = _unpack(message)
         #~ _logger.debug("Advert received for %s on %s", service_name, service_address)
         with self._lock:
             self._services_found[service_name] = service_address
@@ -159,7 +159,7 @@ class _Beacon(threading.Thread):
         
         for service_name, service_address in services:
             #~ _logger.debug("Advertising %s on %s", service_name, service_address)
-            message = pack([service_name, service_address])
+            message = _pack([service_name, service_address])
             self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
 
     def run(self):
@@ -198,8 +198,8 @@ def start_beacon():
 def _rpc(action, *args):
     with sockets.context.socket(zmq.REQ) as socket:
         socket.connect("tcp://localhost:%s" % _Beacon.rpc_port)
-        socket.send(pack([action] + list(args)))
-        return unpack(socket.recv())
+        socket.send(_pack([action] + list(args)))
+        return _unpack(socket.recv())
 
 def advertise(name, address=None):
     start_beacon()
