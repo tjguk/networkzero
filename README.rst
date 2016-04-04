@@ -250,3 +250,7 @@ Questions to be answered
   Of course we to avoid an implicit exception where, eg, the user unconsciously
   passes the None back up the chain and tries to, eg, call .strip on it,
   thinking it'll be a string.
+  
+  However if the error is such that no recovery is meaningful, we should raise 
+  an exception as usual: if, for example, an invalid IP address or port number
+  is used for an address.

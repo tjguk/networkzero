@@ -86,11 +86,13 @@ class _Beacon(threading.Thread):
             t0 = time.time()
             timeout_expired = lambda t: t > t0 + wait_for_secs
                 
-        while not timeout_expired(time.time()):
+        while True:
             with self._lock:
                 discovered = self._services_found.get(name)
             if discovered:
                 return discovered
+            if timeout_expired(time.time()):
+                break
             else:
                 time.sleep(0.1)
         else:
@@ -105,7 +107,6 @@ class _Beacon(threading.Thread):
     def do_stop(self):
         _logger.debug("Stop")
         self.stop()
-        return None
     
     #
     # Main loop:
@@ -192,6 +193,7 @@ def start_beacon():
             _beacon.start()
 
 def _rpc(action, *args):
+    _logger.debug("About to send rpc request %s with args %s", action, args)
     with sockets.context.socket(zmq.REQ) as socket:
         socket.connect("tcp://localhost:%s" % _Beacon.rpc_port)
         socket.send(_pack([action] + list(args)))
@@ -215,6 +217,8 @@ def stop_beacon():
     global _beacon
     start_beacon()
     _rpc("stop")
+    _logger.debug("Waiting for %s", _beacon)
+    _beacon.join()
     _beacon = None
 
 if __name__ == '__main__':

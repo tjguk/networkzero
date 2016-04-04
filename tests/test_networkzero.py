@@ -4,9 +4,9 @@ import pytest
 
 import networkzero as nw0
 
-def test_import_all_revelant_names():
+def test_import_all_relevant_names():
     all_names = {
-        "advertise", "unadvertise", "discover", "discover_all",
+        "advertise", "discover", "discover_all",
         "send_command", "wait_for_command", 
         "send_message", "wait_for_message", "send_reply", 
         "publish_news", "wait_for_news",

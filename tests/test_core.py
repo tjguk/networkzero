@@ -4,22 +4,9 @@ import pytest
 
 import networkzero as nw0
 
-def split_address(address):
-    ip, _, port = address.partition(":")
-    return ip, port
-
-def is_valid_ip(ip):
-    return bool(re.match("^\d{,3}\.\d{,3}\.\d{,3}\.\d{,3}$", ip))
-
-def is_valid_port(port, port_range=range(65536)):
-    try:
-        return int(port) in port_range
-    except ValueError:
-        return False
-
-def is_valid_address(address, port_range=range(65536)):
-    ip, port = split_address(address)
-    return is_valid_ip(ip) and is_valid_port(port, port_range)
+is_valid_ip = nw0.core.is_valid_ip
+is_valid_port = nw0.core.is_valid_port
+is_valid_address = nw0.core.is_valid_address
 
 class TestAddress(object):
 

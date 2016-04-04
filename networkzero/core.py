@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 import random
+import re
 import socket
 
 from . import config
@@ -13,6 +14,13 @@ def get_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     return logger
+
+def _setup_debug_logging():
+    logger = logging.getLogger("networkzero")
+    handler = logging.FileHandler("network.log", encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
+    handler.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
 
 _logger = get_logger(__name__)
 
@@ -36,6 +44,29 @@ class InvalidAddressError(NetworkZeroError):
 # for dynamic allocation
 #
 PORT_POOL = list(config.DYNAMIC_PORTS)
+
+def split_address(address):
+    if ":" in address:
+        ip, _, port = address.partition(":")
+    else:   
+        if address.isdigit():
+            ip, port = "", address
+        else:
+            ip, port = address, ""
+    return ip, port
+
+def is_valid_ip(ip):
+    return bool(re.match("^\d{,3}\.\d{,3}\.\d{,3}\.\d{,3}$", ip))
+
+def is_valid_port(port, port_range=range(65536)):
+    try:
+        return int(port) in port_range
+    except ValueError:
+        return False
+
+def is_valid_address(address, port_range=range(65536)):
+    ip, port = split_address(address)
+    return is_valid_ip(ip) and is_valid_port(port, port_range)
 
 def address(address=None):
     """Convert one of a number of inputs into a valid ip:port string.
@@ -62,13 +93,7 @@ def address(address=None):
     # Otherwise, try to determine whether we're looking at an IP
     # or at a port and leave the other one blank
     #
-    if ":" in address:
-        ip, _, port = address.partition(":")
-    else:   
-        if address.isdigit():
-            ip, port = "", address
-        else:
-            ip, port = address, ""
+    ip, port = split_address(address)
     
     #
     # If the port has been supplied, make sure it's numeric and that it's a valid
