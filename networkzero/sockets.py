@@ -14,6 +14,14 @@ def _serialise(message):
 def _unserialise(message_bytes):
     return marshal.loads(message_bytes)
 
+def _serialise_for_pubsub(message):
+    if not isinstance(message, str):
+        raise core.NetworkZeroError("notification can only be text")
+    return message.encode(config.ENCODING)
+
+def _unserialise_for_pubsub(message_bytes):
+    return message_bytes.decode(config.ENCODING)
+
 class Socket(zmq.Socket):
 
     def __repr__(self):
@@ -24,9 +32,9 @@ class Socket(zmq.Socket):
     def _set_address(self, address):
         self.__dict__['_address'] = address
         tcp_address = "tcp://%s" % address
-        if self.type in (zmq.REQ,):
+        if self.type in (zmq.REQ, zmq.SUB):
             self.connect(tcp_address)
-        elif self.type in (zmq.REP,):
+        elif self.type in (zmq.REP, zmq.PUB):
             self.bind(tcp_address)
     address = property(_get_address, _set_address)
 
@@ -76,7 +84,7 @@ class Sockets:
         else:
             raise core.SocketTimedOutError
 
-    def wait_for_message(self, address, wait_for_secs=config.FOREVER):
+    def wait_for_message(self, address, wait_for_secs):
         socket = self.get_socket(address, zmq.REP)
         _logger.debug("socket %s waiting for request", socket)
         try:
@@ -85,18 +93,27 @@ class Sockets:
             _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
             return None
         
-    def send_message(self, address, request, wait_for_reply_secs=config.FOREVER):
+    def send_message(self, address, request, wait_for_reply_secs):
         socket = self.get_socket(address, zmq.REQ)
         socket.send(_serialise(request))
-        try:
-            return _unserialise(self._receive_with_timeout(socket, wait_for_reply_secs))
-        except core.SocketTimedOutError:
-            _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
-            return None            
+        return _unserialise(self._receive_with_timeout(socket, wait_for_reply_secs))
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, zmq.REP)
         return socket.send(_serialise(reply))
+    
+    def send_notification(self, address, notification):
+        socket = self.get_socket(address, zmq.PUB)
+        return socket.send(_serialise_for_pubsub(notification))
+    
+    def wait_for_notification(self, address, pattern, wait_for_secs):
+        socket = self.get_socket(address, zmq.SUB)
+        socket.subscribe = _serialise_for_pubsub(pattern)
+        try:
+            return _unserialise_for_pubsub(self._receive_with_timeout(socket, wait_for_secs))
+        except core.SocketTimedOutError:
+            _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
+            return None
 
 _sockets = Sockets()
 

@@ -177,7 +177,7 @@ class _Beacon(threading.Thread):
 _beacon = None
 _remote_beacon = object()
 
-def start_beacon():
+def _start_beacon():
     global _beacon
     if _beacon is None:
         _logger.debug("About to start beacon")
@@ -206,21 +206,57 @@ def _rpc(action, *args):
         return _unpack(socket.recv())
 
 def advertise(name, address=None):
-    start_beacon()
+    """Advertise a name at an address
+    
+    Start to advertise service `name` at address `address`. If
+    the address is not supplied, one is constructed and this is
+    returned by the function. ie this is a typical use::
+    
+        address = nw0.advertise("myservice")
+        
+    :param name: any text
+    :param address: either "ip:port" or None
+    :returns: the address given or constructed
+    """
+    _start_beacon()
     return _rpc("advertise", name, address)
     return address
 
 def discover(name, wait_for_secs=60):
-    start_beacon()
+    """Discover a service by name
+    
+    Look for an advert to a named service::
+    
+        address = nw0.discover("myservice")
+        
+    :param name: any text
+    :param wait_for_secs: how many seconds to wait before giving up
+    :returns: the address found or None
+    """
+    _start_beacon()
     return _rpc("discover", name, wait_for_secs)
 
 def discover_all():
-    start_beacon()
+    """Produce a list of all known services and their addresses
+    
+    Ask for all known services as a list of 2-tuples: (name, address)
+    This could, eg, be used to form a dictionary of services::
+    
+        services = dict(nw0.discover_all())
+        
+    :returns: a list of 2-tuples [(name, address), ...]
+    """
+    _start_beacon()
     return _rpc("discover_all")
 
 def stop_beacon():
+    """Stop the beacon, typically to solve a problem with stale names.
+    
+    You do not normally need to call this: do not use this unless you 
+    know what you are about. 
+    """
     global _beacon
-    start_beacon()
+    _start_beacon()
     _rpc("stop")
     _beacon.join()
     _beacon = None
