@@ -66,17 +66,16 @@ class _Beacon(threading.Thread):
             address_found = self._services_to_advertise.get(name)
         
         if address_found:
-            _logger.warn("Service %s already exists on %s", name, address_found)
-            return None
-        else:
-            with self._lock:
-                self._services_to_advertise[name] = canonical_address
-                #
-                # As a shortcut, automatically "discover" any services we're advertising
-                #
-                self._services_found[name] = canonical_address
-                
-            return canonical_address
+            _logger.warn("Superseding service %s which already exists on %s", name, address_found)
+
+        with self._lock:
+            self._services_to_advertise[name] = canonical_address
+            #
+            # As a shortcut, automatically "discover" any services we're advertising
+            #
+            self._services_found[name] = canonical_address
+            
+        return canonical_address
     
     def do_discover(self, name, wait_for_secs):
         _logger.debug("Discover %s waiting for %s secs", name, wait_for_secs)
