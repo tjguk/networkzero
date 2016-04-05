@@ -8,7 +8,12 @@ while True:
     # Receive a move from a player
     #
     player, move = message
+    print("Player %s has sent move %s" % (player, move))
     
+    #
+    # Update the board if a move was made. (This allows players to request
+    # the current state of the board by making an empty move).
+    #
     if move:
         #
         # Do something with the board according to this move, eg:
