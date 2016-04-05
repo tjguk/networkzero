@@ -202,6 +202,9 @@ Questions to be answered
   hides the implementation. However ZeroMQ does what we need and is 
   available cross-platform and cross-language and with Python bindings.
   
+  (Just came across http://nanomsg.org/index.html which is something similar
+  but implemented by someone who cares about Posix-compliance & open licensing).
+  
 * Why not use [some zeroconf implementation]?
 
   This is somewhat the converse of the ZeroMQ question above. And the answer
