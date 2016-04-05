@@ -1,14 +1,50 @@
 networkzero
 ===========
 
-Make it easy for teachers to use simple networking in Python
+Make it easy for learning groups to use simple networking in Python
+
+Intended API
+------------
+
+I intend to offer the following (rough) API, subject to change as I
+work through things:
+
+address below refers to an IP:Port string eg "192.168.1.5:4567"
+
+Discovery
+~~~~~~~~~
+
+* address = advertise(name, address=None)
+
+* address = discover(name, wait_for_secs)
+
+* unadvertise(name[, wait_for_secs=SHORT_WAIT])
+
+* [(name, address), ...] = discover_all()
+
+Messaging
+~~~~~~~~~
+
+* send_command(address, command)
+
+* command = wait_for_command([wait_for_secs=FOREVER])
+
+* send_message(address, question[, wait_for_response_secs=FOREVER])
+
+* question, address = wait_for_request(address, [wait_for_secs=FOREVER])
+
+* send_reply(address, reply)
+
+* publish_news(address, news)
+
+* wait_for_news(address[, pattern=EVERYTHING][, wait_for_secs=FOREVER])
 
 [WARNING: Development braindump follows]
 
-Intro
------
+Background
+----------
 
-We've just done a small two-week project
+At a club I help at, we've just done a small two-week project
 involving three Raspberry Pi boxes: one controlling a motor to drive a
 turntable; one detecting hits against targets mounted on the turntable;
 and one stopping and starting the turntable and adding up the scores.
@@ -28,7 +64,7 @@ In addition, a constant challenge was discovering the other "nodes"
 on the network in the face of DHCP changes and switching from development
 to live networks.
 
-So in the spirit of PyGame Zero and GPIO Zero, I'm tentatively offering
+So in the spirit of PyGame Zero and GPIO Zero, I'm offering
 Network Zero which depends on ZeroMQ and allows you to:
 
 * Discover services
@@ -47,10 +83,12 @@ know how to address the box which a service is running on. Even if you
 give your boxes static IPs (and you probably don't) or well-known hostnames
 then you need some way of knowing easily what IP or name it has. 
 If you're using DHCP (and you probably are) then you can't even write the IP 
-on a sticky label. This can be as true for a classroom laptop set as much as 
+on a sticky label. All this is exacerbated as kids switch machine between
+session and can be as true for a classroom laptop set as much as 
 it is for a Raspberry Pi lab.
 
-In addition, the services may be run on the same or a different box.
+In addition, the services may be run on the same or a different box which
+may be running the same or a different Operating System.
 
 In the robot example above we have two "services": the robot RPi and
 the controller laptop. They need to find and talk to each other without knowing
@@ -111,6 +149,8 @@ Design Guidelines
 
 * The preference is for module-level functions rather than objects.
   (Behind the scenes, global object caches are used)
+
+* As much as possible, code should work in the interactive interpreter
   
 * Thread-safety is not a priority
   
@@ -121,8 +161,6 @@ Design Guidelines
   
 * Code will work unchanged on Python 2.7 and Python 3.2+
 
-* Services are robust in the face of other services stopping & starting.
-
 * The discovery & messenger modules are uncoupled: neither relies on 
   or knows about the internals of the other.
   
@@ -130,39 +168,8 @@ Design Guidelines
   so either "import networkzero as nw0" or "from networkzero import *"
   will provide the whole of the public API.
 
-Intended API
-------------
-
-I intend to offer the following (rough) API, subject to change as I
-work through things:
-
-address below refers to an IP:Port string eg "192.168.1.5:4567"
-
-Discovery
-~~~~~~~~~
-
-* address = advertise(name, address=None)
-
-* address = discover(name)
-
-* unadvertise(name[, wait_for_secs=SHORT_WAIT])
-
-Messaging
-~~~~~~~~~
-
-* send_command(address, command)
-
-* command = wait_for_command([wait_for_secs=FOREVER])
-
-* send_request(address, question[, wait_for_response_secs=FOREVER])
-
-* question, address = wait_for_request(address, [wait_for_secs=FOREVER])
-
-* send_reply(address, reply)
-
-* publish_news(address, news)
-
-* wait_for_news(address[, pattern=EVERYTHING][, wait_for_secs=FOREVER])
+* Underscore prefixes will be used to ensure that only the public API 
+  be visible via help(). This reduces visual clutter.
 
 Questions to be answered
 ------------------------
@@ -171,15 +178,15 @@ Questions to be answered
 
   There's nothing in the design which requires ZeroMQ. The API contract
   hides the implementation. However ZeroMQ does what we need and is 
-  available cross-platform with Python bindings.
+  available cross-platform and cross-language and with Python bindings.
   
 * Why not use [some zeroconf implementation]?
 
   This is somewhat the converse of the ZeroMQ question above. And the answer
   is similar: there's nothing which precludes the use of using a zeroconf
   solution on a given platform. But cross-platform support is spotty, and
-  the services are more designed to support, eg, printer discovery and
-  machine discovery. What we're after is a little more ad hoc.
+  it's more geared towards, eg, printer discovery and machine discovery. 
+  What we're after is a little more ad hoc and transient.
   
   The discovery API is simply advertise / discover. If it turns out that 
   those can be implemented more simply and/or robustly on top of a zeroconf
@@ -212,10 +219,10 @@ Questions to be answered
 
 * Do we need command as well as request?
 
-  Perhaps not: under the covers, command is implemented as a request which swallows
-  its reply. (Possibly warning if none arrives within a short space of time). The
-  idea behind it is that it's likely to be such a common usage pattern that people
-  will ultimately re-implement it anyway.
+  Perhaps not: under the covers, command is implemented as a request 
+  which swallows its reply. (Possibly warning if none arrives within a 
+  short space of time). The idea behind it is that it's likely to be such 
+  a common usage pattern that people will ultimately re-implement it anyway.
 
 * What about multi IP addresses?
 
@@ -236,21 +243,43 @@ Questions to be answered
     
   Of course, a combination of these could be used. Just for now, we can
   defer deciding as most machines, at least in the classroom, will have 
-  only one IP address at a time. My slight preference is for (1) as I see
+  only one IP address at a time. My slight preference is for (3) as I see
   it being fairly easy to implement and fairly transparent.
 
 * Exceptions or returning None/sentinel?
 
-  When, for example, a read times out, we could return None or some other
-  singleton sentinel to the calling code, or we could raise an exception.
-  The latter is undoubtedly more Pythonic but in my experience is harder
-  for youngsters to understand -- and the focus for this module is definitely
-  newcomers.
-  
-  Of course we to avoid an implicit exception where, eg, the user unconsciously
-  passes the None back up the chain and tries to, eg, call .strip on it,
-  thinking it'll be a string.
-  
+  Where we have a "soft" error, eg a command is sent but no ack is received
+  within the expected timeframe, we should carry on with a warning. As it
+  stands warnings and above are logged to stderr so will usually be visible
+  to users. In these cases, the function called will return a None instead
+  of the ack/reply which was expected.
+
   However if the error is such that no recovery is meaningful, we should raise 
   an exception as usual: if, for example, an invalid IP address or port number
   is used for an address.
+  
+* Should we use (Python-specific) marshal to serialise messages?
+
+  Possibly not: the advantage is that it handles simple objects in a
+  consistent way [although not necessarily across Python versions, it
+  occurs to me]. The obvious alternatives are:
+  
+    * Bytes: let the user encode
+    * JSON/YAML
+    * pickle
+    * A.N.Other serialisation protocol
+
+  The actual serialisation is transparent to users; however, the current
+  implementation allows (simple) arbitrary Python structures without any
+  extra effort. So someone can pass a tuple of values or a dictionary. Or
+  a unicode string / byte string.
+  
+  The downside to this is that code written for ZeroMQ but in another
+  language will struggle to match this. (Obviously it would be possible, but
+  far more trouble than it was worth). JSON would be an obvious x-platform
+  alternative but, when I tried it, gave some difficulties over encoding.
+  (Waves hands; I can't remember exactly what the issue was...)
+  
+  One possibility is to attempt to unserialise with marshal and to fall
+  back to raw bytes if that fails, letting the user decide how to cope
+  with the data.

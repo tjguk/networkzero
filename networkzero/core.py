@@ -22,6 +22,15 @@ def _setup_debug_logging():
     handler.setLevel(logging.DEBUG)
     logger.addHandler(handler)
 
+def _get_root_logger():
+    logger = get_logger("networkzero")
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+    handler.setLevel(logging.WARN)
+    logger.addHandler(handler)
+    return logger
+
+_root_logger = _get_root_logger()
 _logger = get_logger(__name__)
 
 #

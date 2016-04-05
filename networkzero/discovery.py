@@ -60,6 +60,7 @@ class _Beacon(threading.Thread):
     #
     def do_advertise(self, name, address):
         _logger.debug("Advertise %s on %s", name, address)
+        canonical_address = core.address(address)
         
         with self._lock:
             address_found = self._services_to_advertise.get(name)
@@ -68,7 +69,6 @@ class _Beacon(threading.Thread):
             _logger.warn("Service %s already exists on %s", name, address_found)
             return None
         else:
-            canonical_address = core.address(address)
             with self._lock:
                 self._services_to_advertise[name] = canonical_address
                 #
@@ -76,7 +76,7 @@ class _Beacon(threading.Thread):
                 #
                 self._services_found[name] = canonical_address
                 
-            return name
+            return canonical_address
     
     def do_discover(self, name, wait_for_secs):
         _logger.debug("Discover %s waiting for %s secs", name, wait_for_secs)
@@ -186,6 +186,13 @@ def start_beacon():
             _beacon = _Beacon()
         except WindowsError as exc:
             if exc.errno == 10048:
+                _logger.warn("Beacon already active on this machine")
+                #
+                # _remote_beacon is simply a not-None sentinel value
+                # to distinguish between the case where we have not
+                # yet started a beacon and where we have found one
+                # in another process.
+                #
                 _beacon = _remote_beacon
             else:
                 raise
@@ -201,8 +208,7 @@ def _rpc(action, *args):
 
 def advertise(name, address=None):
     start_beacon()
-    address = core.address(address)
-    _rpc("advertise", name, address)
+    return _rpc("advertise", name, address)
     return address
 
 def discover(name, wait_for_secs=60):
@@ -217,7 +223,6 @@ def stop_beacon():
     global _beacon
     start_beacon()
     _rpc("stop")
-    _logger.debug("Waiting for %s", _beacon)
     _beacon.join()
     _beacon = None
 
