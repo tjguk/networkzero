@@ -16,7 +16,7 @@ Discovery
 
 * address = advertise(name, address=None)
 
-* address = discover(name, wait_for_secs)
+* address = discover(name, wait_for_secs=FOREVER)
 
 * unadvertise(name[, wait_for_secs=SHORT_WAIT])
 
@@ -25,19 +25,19 @@ Discovery
 Messaging
 ~~~~~~~~~
 
+* send_message(address, question[, wait_for_response_secs=FOREVER])
+
+* message = wait_for_message(address, [wait_for_secs=FOREVER])
+
+* send_reply(address, reply)
+
 * send_command(address, command)
 
 * command = wait_for_command([wait_for_secs=FOREVER])
 
-* send_message(address, question[, wait_for_response_secs=FOREVER])
+* send_notification(address, notification)
 
-* question, address = wait_for_request(address, [wait_for_secs=FOREVER])
-
-* send_reply(address, reply)
-
-* publish_news(address, news)
-
-* wait_for_news(address[, pattern=EVERYTHING][, wait_for_secs=FOREVER])
+* wait_for_notification(address[, pattern=EVERYTHING][, wait_for_secs=FOREVER])
 
 [WARNING: Development braindump follows]
 
@@ -316,8 +316,9 @@ Questions to be answered
   
   pickle has well-known security implications. There are pickle-alikes
   (dill, serpent) in the Python space which do a better job, but they're
-  still Python specific.
+  still Python specific. One possibility is to attempt to unserialise 
+  with marshal and to fall back to raw bytes if that fails, letting the 
+  user decide how to cope with the data.
   
-  One possibility is to attempt to unserialise with marshal and to fall
-  back to raw bytes if that fails, letting the user decide how to cope
-  with the data.
+  NB The pubsub stuff has to use text because that's how the prefix-matching
+  works.

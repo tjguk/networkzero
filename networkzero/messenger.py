@@ -68,14 +68,14 @@ def wait_for_command(address, callback, wait_for_secs=config.FOREVER):
     send_reply(address, config.COMMAND_ACK)
     callback(command)
 
-def publish_notification(address, notification):
+def send_notification(address, notification):
     """Publish a notification to all subscribers
     
     :param address: a nw0 address, eg from `nw0.advertise`
     :param notification: any text object
     """
     _logger.debug("Publish %s to %s", notification, address)
-    return sockets._sockets.publish_notification(address, notification)
+    return sockets._sockets.send_notification(address, notification)
 
 def wait_for_notification(address, prefix=config.EVERYTHING, wait_for_secs=config.FOREVER):
     """Wait for notification starting with `prefix`

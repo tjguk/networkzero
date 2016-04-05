@@ -33,5 +33,5 @@ from .discovery import advertise, discover, discover_all
 from .messenger import (
     send_command, wait_for_command, 
     send_message, wait_for_message, send_reply, 
-    publish_news, wait_for_news
+    send_notification, wait_for_notification
 )
