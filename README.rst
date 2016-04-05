@@ -44,8 +44,10 @@ Messaging
 Typical Usage
 -------------
 
-On computer (or process) A::
+On computer (or process) A
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+::
     import networkzero as nw0
     
     address = nw0.advertise("hello")
@@ -53,8 +55,10 @@ On computer (or process) A::
         name = nw0.wait_for_message(address)
         nw0.send_reply(address, "Hello, %s" % name)
         
-On computer (or process) B::
+On computer (or process) B
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+::
     import networkzero as nw0
     
     hello = nw0.discover("hello")
@@ -221,7 +225,11 @@ Questions to be answered
   all sorts of complications in the code especially when one of them is removed.
   Although the implementation as I write allows for this, I think on mature 
   reflection that it is best left out of a simple package like this.
-  [UPDATE: multiple registration has been removed]
+  [*UPDATE*: multiple registration has been removed]
+  
+  If were needed, eg in a many-to-many chat situation, it could be implemented
+  fairly easily on top of networkzero by defining a "service:<GUID>" naming
+  convention to distinguish related by distinct services.
   
 * What happens if the process hosting the Beacon shuts down before the others do?
 
@@ -239,12 +247,12 @@ Questions to be answered
      will fail, but that failure can be mitigated by having the unadvertise code run
      with a timeout and simply warn if there's no response.
 
-* Do we need command as well as request?
+* We have commands as well as messages. Do we need both?
 
-  Perhaps not: under the covers, command is implemented as a request 
+  Perhaps not: under the covers, command is implemented as a message
   which swallows its reply. (Possibly warning if none arrives within a 
-  short space of time). The idea behind it is that it's likely to be such 
-  a common usage pattern that people will ultimately re-implement it anyway.
+  short space of time). But it's likely to be such a common usage pattern 
+  that people will usually re-implement it anyway.
 
 * What about multi IP addresses?
 
@@ -253,19 +261,19 @@ Questions to be answered
   to wired & wireless networks at the same time. At present, we're only
   choosing one IP address. Our options seem to be:
   
-  1) Let the user deal with it: deactivate IP addresses which are not
+  i) Let the user deal with it: deactivate IP addresses which are not
      wanted for the purposes (eg host-only addresses).
     
-  2) Have some sort of config.ini which allows users to disregard or prefer
-     certain addresses or networks
+  ii) Have some sort of config.ini which allows users to disregard or prefer
+      certain addresses or networks
     
-  3) Allow the "address" object to be more than one address in a list.
-     These multiple addresses will then be advertised and messages sent
-     across them.
+  iii) Allow the "address" object to be more than one address in a list.
+       These multiple addresses will then be advertised and messages sent
+       across them.
     
   Of course, a combination of these could be used. Just for now, we can
   defer deciding as most machines, at least in the classroom, will have 
-  only one IP address at a time. My slight preference is for (3) as I see
+  only one IP address at a time. My slight preference is for (iii) as I see
   it being fairly easy to implement and fairly transparent.
 
 * Exceptions or returning None/sentinel?
@@ -280,7 +288,12 @@ Questions to be answered
   an exception as usual: if, for example, an invalid IP address or port number
   is used for an address.
   
-* Should we use (Python-specific) marshal to serialise messages?
+  NB This is a pragmatic choice. We're really just dodging the issue knowing
+  that, in a classroom situation, we can always bomb out and restart the process.
+  In reality, we'd be looking at a zombie socket of some sort, stuck somwhere
+  inside its own state machine.
+  
+* We currently used marshal to serialise messages. Is this a good idea?
 
   Possibly not: the advantage is that it handles simple objects in a
   consistent way [although not necessarily across Python versions, it
@@ -292,15 +305,19 @@ Questions to be answered
     * A.N.Other serialisation protocol
 
   The actual serialisation is transparent to users; however, the current
-  implementation allows (simple) arbitrary Python structures without any
-  extra effort. So someone can pass a tuple of values or a dictionary. Or
-  a unicode string / byte string.
+  implementation allows simple Python structures without any extra effort. 
+  So someone can pass a tuple of values or a dictionary. Or a unicode 
+  string / byte string.
   
   The downside to this is that code written for ZeroMQ but in another
   language will struggle to match this. (Obviously it would be possible, but
   far more trouble than it was worth). JSON would be an obvious x-platform
   alternative but, when I tried it, gave some difficulties over encoding.
   (Waves hands; I can't remember exactly what the issue was...)
+  
+  pickle has well-known security implications. There are pickle-alikes
+  (dill, serpent) in the Python space which do a better job, but they're
+  still Python specific.
   
   One possibility is to attempt to unserialise with marshal and to fall
   back to raw bytes if that fails, letting the user decide how to cope
