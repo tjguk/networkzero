@@ -14,13 +14,16 @@ def _serialise(message):
 def _unserialise(message_bytes):
     return marshal.loads(message_bytes)
 
-def _serialise_for_pubsub(message):
-    if not isinstance(message, str):
-        raise core.NetworkZeroError("notification can only be text")
-    return message.encode(config.ENCODING)
+PUBSUB_DELIMETER = b"\x00"
+
+def _serialise_for_pubsub(topic, data):
+    topic_bytes = topic.encode(config.ENCODING)
+    data_bytes = _serialise(data)
+    return topic_bytes + PUBSUB_DELIMETER + data_bytes
 
 def _unserialise_for_pubsub(message_bytes):
-    return message_bytes.decode(config.ENCODING)
+    topic_bytes, data_bytes = message_bytes.split(PUBSUB_DELIMETER, maxsplit=1)
+    return topic_bytes.decode(config.ENCODING), _unserialise(data_bytes)
 
 class Socket(zmq.Socket):
 
@@ -102,18 +105,18 @@ class Sockets:
         socket = self.get_socket(address, zmq.REP)
         return socket.send(_serialise(reply))
     
-    def send_notification(self, address, notification):
+    def send_notification(self, address, topic, data):
         socket = self.get_socket(address, zmq.PUB)
-        return socket.send(_serialise_for_pubsub(notification))
+        return socket.send(_serialise_for_pubsub(topic, data))
     
-    def wait_for_notification(self, address, pattern, wait_for_secs):
+    def wait_for_notification(self, address, topic, wait_for_secs):
         socket = self.get_socket(address, zmq.SUB)
-        socket.subscribe = _serialise_for_pubsub(pattern)
+        socket.subscribe = topic.encode(config.ENCODING)
         try:
             return _unserialise_for_pubsub(self._receive_with_timeout(socket, wait_for_secs))
         except core.SocketTimedOutError:
             _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
-            return None
+            return None, None
 
 _sockets = Sockets()
 
