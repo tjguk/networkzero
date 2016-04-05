@@ -4,10 +4,13 @@ def display_board(board):
     print(board)
 
 address = nw0.discover("board")
+updates = nw0.discover("board-updates")
 #
-# Send an query to get the state of the board before we begin
+# Subscribe to the regular status updates from the board
+# server and wait until we receive the first one so we
+# what the state of the board is as we enter play.
 #
-board = nw0.send_message(address, ["query"])
+topic, board = nw0.wait_for_notification(updates, "status")
 
 player = input("Which player? ")
 #
@@ -20,11 +23,9 @@ while True:
     display_board(board)
     
     move = input("Move: ")
-    board = nw0.send_message(address, ["move", player, move])
-    display_board(board)
-    
+    nw0.send_command(address, "MOVE '%s' '%s'" % (player, move))
+
     #
-    # Only interested in "move" updates, nothing else
+    # 
     #
-    nw0.wait_for_notification(address, "move")
-    board = nw0.send_message(address, ["query"])
+    topic, board = nw0.wait_for_notification(address, "status")
