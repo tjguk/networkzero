@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import shlex
+
 from . import config
 from . import core
 from . import sockets
@@ -40,11 +42,14 @@ def send_reply(address, reply):
 def send_command(address, command, wait_for_ack_secs=config.FOREVER):
     """Send a command to an address and wait for acknowledgement
     
-    NB this differs from `send_message` only by virtue of not expecting
-    a reply, only acknowledgement that the message has been received.
+    The command is a single line of text which will broken out
+    into a command followed by parameters. If any of the parameters
+    contains a space it needs to be surrounded by quotes, eg::
+    
+      nw0.send_command(address, "REGISTER person 'Tim Golden'")
     
     :param address: a nw0 address (eg from `nw0.discover`)
-    :param message: any simple Python object, including text & tuples
+    :param command: a line of text
     :param wait_for_ack_secs: how many seconds to wait for acknowledgement before giving up    
     """
     _logger.debug("Sending command %s to address %s waiting %s secs for an ACK")
@@ -56,17 +61,18 @@ def send_command(address, command, wait_for_ack_secs=config.FOREVER):
     if ack != config.COMMAND_ACK:
         _logger.warn("Unexpected reply %s for command %s to address %s", ack, command, address)
 
-def wait_for_command(address, callback, wait_for_secs=config.FOREVER):
-    """Wait for a command and issue a callback
+def wait_for_command(address, wait_for_secs=config.FOREVER):
+    """Wait for a command, acknowledge it and split the command in words
     
     :param address: a nw0 address, eg from `nw0.advertise`
-    :param callback: a function to be called with the command received
     :param wait_for_secs: how many seconds to wait before giving up
+    :returns: a 2-tuple (command, [parameters])
     """
-    _logger.debug("Waiting %s secs for command on %s with callback %s", wait_for_secs, address, callback)
+    _logger.debug("Waiting %s secs for command on %s", wait_for_secs, address)
     command = wait_for_message(address, wait_for_secs)
     send_reply(address, config.COMMAND_ACK)
-    callback(command)
+    components = shlex.split(command)
+    return components[0], components[1:]
 
 def send_notification(address, notification):
     """Publish a notification to all subscribers
