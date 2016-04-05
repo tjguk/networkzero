@@ -64,6 +64,11 @@ def send_command(address, command, wait_for_ack_secs=config.FOREVER):
 def wait_for_command(address, wait_for_secs=config.FOREVER):
     """Wait for a command, acknowledge it and split the command in words
     
+    The first word is assumed to be the command; the remaining words are
+    the parameters::
+    
+      command, params = nw0.wait_for_command(address)
+    
     :param address: a nw0 address, eg from `nw0.advertise`
     :param wait_for_secs: how many seconds to wait before giving up
     :returns: a 2-tuple (command, [parameters])
