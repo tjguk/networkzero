@@ -41,6 +41,28 @@ Messaging
 
 [WARNING: Development braindump follows]
 
+Typical Usage
+-------------
+
+On computer (or process) A::
+
+    import networkzero as nw0
+    
+    address = nw0.advertise("hello")
+    while True:
+        name = nw0.wait_for_message(address)
+        nw0.send_reply(address, "Hello, %s" % name)
+        
+On computer (or process) B::
+
+    import networkzero as nw0
+    
+    hello = nw0.discover("hello")
+    reply = nw0.send_message(hello, "World")
+    print(reply)
+    reply = nw0.send_message(hello, "Tim")
+    print(reply)
+
 Background
 ----------
 
