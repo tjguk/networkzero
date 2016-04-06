@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import marshal
+import time
 
 import zmq
 
@@ -14,15 +15,13 @@ def _serialise(message):
 def _unserialise(message_bytes):
     return marshal.loads(message_bytes)
 
-PUBSUB_DELIMETER = b"\x00"
-
 def _serialise_for_pubsub(topic, data):
     topic_bytes = topic.encode(config.ENCODING)
     data_bytes = _serialise(data)
-    return topic_bytes + PUBSUB_DELIMETER + data_bytes
+    return [topic_bytes, data_bytes]
 
 def _unserialise_for_pubsub(message_bytes):
-    topic_bytes, data_bytes = message_bytes.split(PUBSUB_DELIMETER, maxsplit=1)
+    topic_bytes, data_bytes = message_bytes
     return topic_bytes.decode(config.ENCODING), _unserialise(data_bytes)
 
 class Socket(zmq.Socket):
@@ -39,6 +38,8 @@ class Socket(zmq.Socket):
             self.connect(tcp_address)
         elif self.type in (zmq.REP, zmq.PUB):
             self.bind(tcp_address)
+        if self.type in (zmq.SUB, zmq.PUB):
+            time.sleep(1)
     address = property(_get_address, _set_address)
 
 class Context(zmq.Context):
@@ -93,7 +94,7 @@ class Sockets:
                 yield self.try_length_ms
             yield part_interval
 
-    def _receive_with_timeout(self, socket, timeout_s):
+    def _receive_with_timeout(self, socket, timeout_s, use_multipart=False):
         """Check for socket activity and either return what's
         received on the socket or time out if timeout_s expires
         without anything on the socket.
@@ -109,7 +110,10 @@ class Sockets:
         for interval_ms in self.intervals_ms(timeout_ms):
             sockets = dict(self._poller.poll(interval_ms))
             if socket in sockets:
-                return socket.recv()
+                if use_multipart:
+                    return socket.recv_multipart()
+                else:
+                    return socket.recv()
         else:
             raise core.SocketTimedOutError(timeout_s)
 
@@ -132,13 +136,13 @@ class Sockets:
     
     def send_notification(self, address, topic, data):
         socket = self.get_socket(address, zmq.PUB)
-        return socket.send(_serialise_for_pubsub(topic, data))
+        return socket.send_multipart(_serialise_for_pubsub(topic, data))
     
     def wait_for_notification(self, address, topic, wait_for_s):
         socket = self.get_socket(address, zmq.SUB)
         socket.set(zmq.SUBSCRIBE, topic.encode(config.ENCODING))
         try:
-            result = self._receive_with_timeout(socket, wait_for_s)
+            result = self._receive_with_timeout(socket, wait_for_s, use_multipart=True)
             unserialised_result = _unserialise_for_pubsub(result)
             return unserialised_result
         except core.SocketTimedOutError:
