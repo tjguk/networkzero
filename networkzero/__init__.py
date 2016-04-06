@@ -28,7 +28,11 @@ print(nw0.send_message(echo_address, "Alice"))
 print(nw0.send_message(echo_address, "Bob"))
 
 """
-
+from .core import (
+    NetworkZeroError, SocketAlreadyExistsError, 
+    SocketTimedOutError, InvalidAddressError,
+    split_command
+)
 from .discovery import advertise, discover, discover_all
 from .messenger import (
     send_command, wait_for_command, 

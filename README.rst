@@ -277,19 +277,19 @@ Questions to be answered
 
 * Exceptions or returning None/sentinel?
 
-  Where we have a "soft" error, eg a command is sent but no ack is received
-  within the expected timeframe, we should carry on with a warning. As it
-  stands warnings and above are logged to stderr so will usually be visible
-  to users. In these cases, the function called will return a None instead
-  of the ack/reply which was expected.
+  Where we have a "soft" error, eg a wait times out, the function called 
+  will return a None or some other useful sentinel.
 
   However if the error is such that no recovery is meaningful, we should raise 
-  an exception as usual: if, for example, an invalid IP address or port number
-  is used for an address.
+  an exception as usual. In particular, because of the statefulness of ZeroMQ
+  sockets, if we don't receive a reply, that socket becomes unusable. [TODO:
+  there is the possibility of tracking the state of the underlying socket
+  and reacting more helpfully when, a wait is started before a reply is
+  sent].
   
   NB This is a pragmatic choice. We're really just dodging the issue knowing
   that, in a classroom situation, we can always bomb out and restart the process.
-  In reality, we'd be looking at a zombie socket of some sort, stuck somwhere
+  In reality, we'd be looking at a zombie socket of some sort, stuck somewhere
   inside its own state machine.
   
 * We currently used marshal to serialise messages. Is this a good idea?
@@ -320,5 +320,5 @@ Questions to be answered
   with marshal and to fall back to raw bytes if that fails, letting the 
   user decide how to cope with the data.
   
-  NB The pubsub stuff has to use text because that's how the prefix-matching
+  NB The pubsub stuff has to use bytes because that's how the prefix-matching
   works.

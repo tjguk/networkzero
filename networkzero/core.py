@@ -2,6 +2,7 @@
 import logging
 import random
 import re
+import shlex
 import socket
 
 from . import config
@@ -42,8 +43,13 @@ class NetworkZeroError(Exception):
 class SocketAlreadyExistsError(NetworkZeroError): 
     pass
 
-class SocketTimedOutError(NetworkZeroError): 
-    pass
+class SocketTimedOutError(NetworkZeroError):
+    
+    def __init__(self, n_seconds):
+        self.n_seconds = n_seconds
+    
+    def __str__(self):
+        return "Gave up waiting after %s seconds; this connection is now unusable" % self.n_seconds
 
 class InvalidAddressError(NetworkZeroError):
     pass
@@ -140,3 +146,5 @@ def address(address=None):
         return "%s:%s" % addrinfo[-1]
     else:
         raise InvalidAddressError("Invalid address %s" % address)
+
+split_command = shlex.split
