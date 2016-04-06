@@ -31,28 +31,11 @@ def process(function, args):
 def check_log(logger, pattern):
     return bool(re.search(pattern, logger.getvalue()))
 
+#
+# send_message
+#
 def support_test_send_message(address):
     nw0.send_reply(address, nw0.wait_for_message(address))
-
-def support_test_send_reply(address, queue):
-    message = uuid.uuid4().hex
-    reply = nw0.send_message(address, message)
-    queue.put(reply)
-
-def support_test_send_command(address, queue):
-    queue.put(nw0.wait_for_command(address))
-
-def support_test_wait_for_command(address, queue):
-    action = uuid.uuid4().hex
-    param = uuid.uuid4().hex
-    command = action + " " + param
-    queue.put((action, [param]))
-    nw0.send_command(address, command)
-    
-def support_test_send_notification(address, topic, queue):
-    queue.put("READY")
-    topic, data = nw0.wait_for_notification(address, topic, wait_for_s=3)
-    queue.put((topic, data))
 
 def test_send_message():
     address = nw0.core.address()
@@ -62,6 +45,9 @@ def test_send_message():
         reply = nw0.send_message(address, message)
         assert reply == message
 
+#
+# wait_for_message
+#
 def test_wait_for_message():
     address = nw0.core.address()
     message_sent = uuid.uuid4().hex
@@ -74,6 +60,14 @@ def test_wait_for_message_with_timeout():
     address = nw0.core.address()
     message = nw0.wait_for_message(address, wait_for_s=0.1)
     assert message is None
+
+#
+# send_reply
+#
+def support_test_send_reply(address, queue):
+    message = uuid.uuid4().hex
+    reply = nw0.send_message(address, message)
+    queue.put(reply)
 
 def test_send_reply():
     address = nw0.core.address()
@@ -90,6 +84,12 @@ def test_send_reply():
         reply = queue.get()
         assert reply == message_received
 
+#
+# send_command
+#
+def support_test_send_command(address, queue):
+    queue.put(nw0.wait_for_command(address))
+
 def test_send_command():
     address = nw0.core.address()
     action = uuid.uuid4().hex
@@ -101,6 +101,16 @@ def test_send_command():
         nw0.send_command(address, command)
         assert queue.get() == (action, [param])
 
+#
+# wait_for_command
+#
+def support_test_wait_for_command(address, queue):
+    action = uuid.uuid4().hex
+    param = uuid.uuid4().hex
+    command = action + " " + param
+    queue.put((action, [param]))
+    nw0.send_command(address, command)
+    
 def test_wait_for_command():
     address = nw0.core.address()
     queue = multiprocessing.Queue()
@@ -109,6 +119,15 @@ def test_wait_for_command():
         command_received = nw0.wait_for_command(address)
         assert command_received == queue.get()
 
+#
+# send_notification
+#
+def support_test_send_notification(address, topic, queue):
+    queue.put("READY")
+    topic, data = nw0.wait_for_notification(address, topic, wait_for_s=3)
+    queue.put((topic, data))
+
+@pytest.mark.xfail(reason="Unresolved race condition in test")
 def test_send_notification():
     address = nw0.core.address()
     topic = uuid.uuid4().hex
@@ -120,9 +139,13 @@ def test_send_notification():
         nw0.send_notification(address, topic, data)
         assert queue.get() == (topic, data)
 
+#
+# wait_for_notification
+#
 def support_test_wait_for_notification(address, topic, data):
     nw0.send_notification(address, topic, data)
 
+@pytest.mark.xfail(reason="Unresolved race condition in test")
 def test_wait_for_notification():
     address = nw0.core.address()
     topic = uuid.uuid4().hex
