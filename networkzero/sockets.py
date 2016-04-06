@@ -93,25 +93,25 @@ class Sockets:
                 yield self.try_length_ms
             yield part_interval
 
-    def _receive_with_timeout(self, socket, timeout_secs):
+    def _receive_with_timeout(self, socket, timeout_s):
         """Check for socket activity and either return what's
-        received on the socket or time out if timeout_secs expires
+        received on the socket or time out if timeout_s expires
         without anything on the socket.
         
-        This is implemented in loops of self.try_length_ms ms to
-        allow Ctrl-C handling to take place.
+        This is implemented in loops of self.try_length_ms milliseconds 
+        to allow Ctrl-C handling to take place.
         """
-        if timeout_secs is config.FOREVER:
+        if timeout_s is config.FOREVER:
             timeout_ms = config.FOREVER
         else:
-            timeout_ms = int(1000 * timeout_secs)
+            timeout_ms = int(1000 * timeout_s)
         
         for interval_ms in self.intervals_ms(timeout_ms):
             sockets = dict(self._poller.poll(interval_ms))
             if socket in sockets:
                 return socket.recv()
         else:
-            raise core.SocketTimedOutError(timeout_secs)
+            raise core.SocketTimedOutError(timeout_s)
 
     def wait_for_message(self, address, wait_for_s):
         socket = self.get_socket(address, zmq.REP)
@@ -121,10 +121,10 @@ class Sockets:
         except core.SocketTimedOutError:
             return None
         
-    def send_message(self, address, request, wait_for_reply_secs):
+    def send_message(self, address, request, wait_for_reply_s):
         socket = self.get_socket(address, zmq.REQ)
         socket.send(_serialise(request))
-        return _unserialise(self._receive_with_timeout(socket, wait_for_reply_secs))
+        return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, zmq.REP)
