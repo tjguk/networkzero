@@ -10,6 +10,7 @@ import pytest
 
 import networkzero as nw0
 nw0.core._setup_debug_logging()
+_logger = nw0.core._get_root_logger()
 
 @contextlib.contextmanager
 def capture_logging(logger, stream):
@@ -34,7 +35,7 @@ def support_test_send_message(address):
     nw0.send_reply(address, nw0.wait_for_message(address))
 
 def support_test_send_reply(address, queue):
-    message = uuid.uuid1().hex
+    message = uuid.uuid4().hex
     reply = nw0.send_message(address, message)
     queue.put(reply)
 
@@ -42,8 +43,8 @@ def support_test_send_command(address, queue):
     queue.put(nw0.wait_for_command(address))
 
 def support_test_wait_for_command(address, queue):
-    action = uuid.uuid1().hex
-    param = uuid.uuid1().hex
+    action = uuid.uuid4().hex
+    param = uuid.uuid4().hex
     command = action + " " + param
     queue.put((action, [param]))
     nw0.send_command(address, command)
@@ -55,7 +56,7 @@ def support_test_send_notification(address, topic, queue):
 
 def test_send_message():
     address = nw0.core.address()
-    message = uuid.uuid1().hex
+    message = uuid.uuid4().hex
     
     with process(support_test_send_message, (address,)):
         reply = nw0.send_message(address, message)
@@ -63,7 +64,7 @@ def test_send_message():
 
 def test_wait_for_message():
     address = nw0.core.address()
-    message_sent = uuid.uuid1().hex
+    message_sent = uuid.uuid4().hex
 
     with process(nw0.send_message, (address, message_sent, 0)):
         message_received = nw0.wait_for_message(address)
@@ -91,8 +92,8 @@ def test_send_reply():
 
 def test_send_command():
     address = nw0.core.address()
-    action = uuid.uuid1().hex
-    param = uuid.uuid1().hex
+    action = uuid.uuid4().hex
+    param = uuid.uuid4().hex
     command = action + " " + param
     queue = multiprocessing.Queue()
     
@@ -110,12 +111,22 @@ def test_wait_for_command():
 
 def test_send_notification():
     address = nw0.core.address()
-    topic = uuid.uuid1().hex
-    data = uuid.uuid1().hex
+    topic = uuid.uuid4().hex
+    data = uuid.uuid().hex
     queue = multiprocessing.Queue()
     
     with process(support_test_send_notification, (address, topic, queue)):
         assert "READY" == queue.get()
-        for i in range(10):
-            nw0.send_notification(address, topic, data)
+        nw0.send_notification(address, topic, data)
         assert queue.get() == (topic, data)
+
+def support_test_wait_for_notification(address, topic, data):
+    nw0.send_notification(address, topic, data)
+
+def test_wait_for_notification():
+    address = nw0.core.address()
+    topic = uuid.uuid4().hex
+    data = uuid.uuid4().hex
+
+    with process(support_test_wait_for_notification, (address, topic, data)):
+        assert (topic, data) == nw0.wait_for_notification(address, topic, wait_for_s=5)

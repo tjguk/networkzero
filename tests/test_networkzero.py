@@ -9,7 +9,7 @@ def test_import_all_relevant_names():
         "advertise", "discover", "discover_all",
         "send_command", "wait_for_command", 
         "send_message", "wait_for_message", "send_reply", 
-        "publish_news", "wait_for_news",
+        "send_notification", "wait_for_notification",
         "split_command",
         "NetworkZeroError", "SocketAlreadyExistsError",
         "SocketTimedOutError", "InvalidAddressError",
