@@ -10,22 +10,54 @@ each other and talking across a network. Typical examples would include:
 * Having a remote sensor ping a central controller
 * A peer-to-peer chat / instant messenger
 
-Example code:
+To send a message and wait for a reply::
 
-[Computer 1]:
-import networkzero as nw0
+    [Computer 1]
+    import networkzero as nw0
 
-echo_address = nw0.advertise("echo")
-while True:
-    name = nw0.wait_for_message(echo_address)
-    nw0.send_reply(echo_address, "Hello " + name)
+    echo_address = nw0.advertise("echo")
+    while True:
+        name = nw0.wait_for_message(echo_address)
+        nw0.send_reply(echo_address, "Hello " + name)
 
-[Computer 2]:
-import networkzero as nw0
+    [Computer 2]
+    import networkzero as nw0
 
-echo_address = nw0.discover("echo")
-print(nw0.send_message(echo_address, "Alice"))
-print(nw0.send_message(echo_address, "Bob"))
+    echo_address = nw0.discover("echo")
+    print(nw0.send_message(echo_address, "Alice"))
+    print(nw0.send_message(echo_address, "Bob"))
+
+
+To send a command without waiting for a reply::
+
+    [Computer 1]
+    import networkzero as nw0
+    
+    address = nw0.advertise("robot")
+    while True:
+        command, params = nw0.wait_for_command(address)
+        if command == "FORWARD": 
+            # ...
+        elif command == "TURN":
+            [direction, degrees] = params
+            # ...
+        
+
+    [Computer 2]
+    import networkzero as nw0
+
+    robot = nw0.discover("robot")
+    nw0.send_command("FORWARD")
+    nw0.send_command("TURN LEFT 45")
+
+To send notifications::
+
+    [Computer 1]
+    import networkzero as nw0
+    
+    address = nw0.advertise("hub")
+    while True:
+        
 
 """
 
