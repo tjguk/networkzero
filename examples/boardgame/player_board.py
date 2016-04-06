@@ -1,9 +1,4 @@
-"""Show the current state of the board
-"""
 import networkzero as nw0
-
-def display_board(board):
-    print(board)
 
 updates = nw0.discover("board-updates")
 while True:
