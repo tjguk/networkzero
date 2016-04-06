@@ -44,12 +44,12 @@ def test_discover(beacon):
 def test_discover_not_exists_with_timeout(beacon):
     service = uuid.uuid1().hex
     address = nw0.advertise(service)
-    assert None is nw0.discover(uuid.uuid1().hex, wait_for_secs=2)
+    assert None is nw0.discover(uuid.uuid1().hex, wait_for_s=2)
 
 def test_discover_exists_with_timeout(beacon):
     service = uuid.uuid1().hex
     address = nw0.advertise(service)
-    assert address == nw0.discover(service, wait_for_secs=2)
+    assert address == nw0.discover(service, wait_for_s=2)
 
 def test_discover_all(beacon):
     service1 = uuid.uuid1().hex

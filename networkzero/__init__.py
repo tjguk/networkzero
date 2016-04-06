@@ -55,9 +55,22 @@ To send notifications::
     [Computer 1]
     import networkzero as nw0
     
-    address = nw0.advertise("hub")
+    address = nw0.advertise("data-logger")
     while True:
-        
+        #
+        # ... do stuff
+        #
+        nw0.send_notification(address, "data", ...)
+
+    [Computer 2, 3, 4...]
+    import networkzero as nw0
+    
+    logger = nw0.discover("data-logger")
+    while True:
+        topic, data = nw0.wait_for_notification(address, topic)
+        #
+        # ... write the data to a database etc.
+        #
 
 """
 from .core import (

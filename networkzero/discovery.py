@@ -28,9 +28,9 @@ class _Beacon(threading.Thread):
     
     rpc_port = 9998
     beacon_port = 9999
-    finder_timeout_secs = 0.5
+    finder_timeout_s = 0.5
     beacon_message_size = 256
-    interval_secs = config.BEACON_ADVERT_FREQUENCY_SECS
+    interval_s = config.BEACON_ADVERT_FREQUENCY_S
     
     def __init__(self):
         super().__init__(daemon=True)
@@ -77,13 +77,13 @@ class _Beacon(threading.Thread):
             
         return canonical_address
     
-    def do_discover(self, name, wait_for_secs):
-        _logger.debug("Discover %s waiting for %s secs", name, wait_for_secs)
-        if wait_for_secs == -1:
+    def do_discover(self, name, wait_for_s):
+        _logger.debug("Discover %s waiting for %s seconds", name, wait_for_s)
+        if wait_for_s == -1:
             timeout_expired = lambda t: False
         else:
             t0 = time.time()
-            timeout_expired = lambda t: t > t0 + wait_for_secs
+            timeout_expired = lambda t: t > t0 + wait_for_s
                 
         while True:
             with self._lock:
@@ -95,7 +95,7 @@ class _Beacon(threading.Thread):
             else:
                 time.sleep(0.1)
         else:
-            _logger.warn("%s not discovered after %s secs", name, wait_for_secs)
+            _logger.warn("%s not discovered after %s seconds", name, wait_for_s)
             return None
     
     def do_discover_all(self):
@@ -141,7 +141,7 @@ class _Beacon(threading.Thread):
             self.rpc.send(_pack(result))
     
     def check_for_adverts(self):
-        events = dict(self.poller.poll(1000 * self.finder_timeout_secs))
+        events = dict(self.poller.poll(1000 * self.finder_timeout_s))
         if self.socket_fd not in events: 
             return
 
@@ -168,7 +168,7 @@ class _Beacon(threading.Thread):
             # so that an advert called and checked within
             # the same cycle will be found
             #
-            if time.time() > t0 + self.interval_secs:
+            if time.time() > t0 + self.interval_s:
                 self.advertise_names()
                 t0 = time.time()
             self.check_for_adverts()
@@ -222,7 +222,7 @@ def advertise(name, address=None):
     return _rpc("advertise", name, address)
     return address
 
-def discover(name, wait_for_secs=60):
+def discover(name, wait_for_s=60):
     """Discover a service by name
     
     Look for an advert to a named service::
@@ -230,11 +230,11 @@ def discover(name, wait_for_secs=60):
         address = nw0.discover("myservice")
         
     :param name: any text
-    :param wait_for_secs: how many seconds to wait before giving up
+    :param wait_for_s: how many seconds to wait before giving up
     :returns: the address found or None
     """
     _start_beacon()
-    return _rpc("discover", name, wait_for_secs)
+    return _rpc("discover", name, wait_for_s)
 
 def discover_all():
     """Produce a list of all known services and their addresses
