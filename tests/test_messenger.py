@@ -17,29 +17,28 @@ def capture_logging(logger, stream):
     handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
     handler.setLevel(logging.WARN)
     logger.addHandler(handler)
-    yield stream
+    yield
     logger.removeHandler(handler)
 
 def check_log(logger, pattern):
     return bool(re.search(pattern, logger.getvalue()))
 
 def support_test_send_message(address):
-    import networkzero as nw0
     nw0.send_reply(address, nw0.wait_for_message(address))
 
 def support_test_send_reply(address, queue):
-    import networkzero as nw0
-    import uuid
     message = uuid.uuid1().hex
     reply = nw0.send_message(address, message)
     queue.put(reply)
 
 def support_test_send_command(address, queue):
-    import networkzero as nw0
     queue.put(nw0.wait_for_command(address))
 
-def support_wait_for_command(address, queue):
-    command = uuid.uuid1()
+def support_test_wait_for_command(address, queue):
+    action = uuid.uuid1().hex
+    param = uuid.uuid1().hex
+    command = action + " " + param
+    queue.put((action, [param]))
     nw0.send_command(address, command)
     
 def test_send_message():
@@ -54,8 +53,8 @@ def test_send_message():
     p = multiprocessing.Process(target=support_test_send_message, args=(address,), daemon=True)
     p.start()
     reply = nw0.send_message(address, message)
-    p.join()
     assert reply == message
+    p.join()
 
 def test_wait_for_message():
     address = nw0.core.address()
@@ -68,15 +67,13 @@ def test_wait_for_message():
     p = multiprocessing.Process(target=nw0.send_message, args=(address, message_sent, 0), daemon=True)
     p.start()
     message_received = nw0.wait_for_message(address)
-    p.join()
     assert message_received == message_sent
+    p.join()
 
 def test_wait_for_message_with_timeout():
     address = nw0.core.address()
-    with io.StringIO() as stream:
-        with capture_logging(logging.getLogger("networkzero"), stream):
-            nw0.wait_for_message(address, wait_for_secs=0.1)
-        assert re.search(r"WARNING Socket \<[^>]*\> timed out", stream.getvalue())
+    message = nw0.wait_for_message(address, wait_for_s=0.1)
+    assert message is None
 
 def test_send_reply():
     address = nw0.core.address()
@@ -92,12 +89,14 @@ def test_send_reply():
     message_received = nw0.wait_for_message(address)
     nw0.send_reply(address, message_received)
     reply = queue.get()
-    p.join()
     assert reply == message_received
+    p.join()
 
 def test_send_command():
     address = nw0.core.address()
-    command = uuid.uuid1().hex
+    action = uuid.uuid1().hex
+    param = uuid.uuid1().hex
+    command = action + " " + param
     queue = multiprocessing.Queue()
     
     #
@@ -106,16 +105,15 @@ def test_send_command():
     p = multiprocessing.Process(target=support_test_send_command, args=(address, queue), daemon=True)
     p.start()
     nw0.send_command(address, command)
+    assert queue.get() == (action, [param])
     p.join()
-    assert queue.get() == command
 
 def test_wait_for_command():
     address = nw0.core.address()
-    command_sent = uuid.uuid1().hex
     queue = multiprocessing.Queue()
 
-    p = multiprocessing.Process(target=nw0.send_command, args=(address, command_sent), daemon=True)
+    p = multiprocessing.Process(target=support_test_wait_for_command, args=(address, queue), daemon=True)
     p.start()
-    nw0.wait_for_command(address, )
+    command_received = nw0.wait_for_command(address)
+    assert command_received == queue.get()
     p.join()
-    assert queue.get() == command_sent
