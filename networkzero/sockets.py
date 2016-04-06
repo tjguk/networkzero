@@ -56,7 +56,7 @@ context = Context()
 #
 class Sockets:
 
-    try_length_ms = 1000 # wait for 1 second at a time
+    try_length_ms = 500 # wait for .5 second at a time
     
     def __init__(self):
         self._sockets = {}
@@ -136,9 +136,11 @@ class Sockets:
     
     def wait_for_notification(self, address, topic, wait_for_s):
         socket = self.get_socket(address, zmq.SUB)
-        socket.subscribe = topic.encode(config.ENCODING)
+        socket.set(zmq.SUBSCRIBE, topic.encode(config.ENCODING))
         try:
-            return _unserialise_for_pubsub(self._receive_with_timeout(socket, wait_for_s))
+            result = self._receive_with_timeout(socket, wait_for_s)
+            unserialised_result = _unserialise_for_pubsub(result)
+            return unserialised_result
         except core.SocketTimedOutError:
             return None, None
 

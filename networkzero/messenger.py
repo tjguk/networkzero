@@ -93,7 +93,7 @@ def send_notification(address, topic, data=None):
     :param topic: any text object
     :param data: any simple Python object including test & tuples
     """
-    _logger.debug("Publish %s:%s to %s", topic, data, address)
+    _logger.debug("Publish topic %s with data %s to %s", topic, data, address)
     return sockets._sockets.send_notification(address, topic, data)
 
 def wait_for_notification(address, prefix=config.EVERYTHING, wait_for_s=config.FOREVER):

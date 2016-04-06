@@ -5,7 +5,7 @@ address = nw0.advertise("board")
 
 board = {}
 while True:
-    command, params = nw0.wait_for_command(address, wait_for_secs=1)
+    command, params = nw0.wait_for_command(address)
     print("Command %s with params %s" % (command, params))
     
     #
