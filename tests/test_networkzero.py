@@ -10,6 +10,9 @@ def test_import_all_relevant_names():
         "send_command", "wait_for_command", 
         "send_message", "wait_for_message", "send_reply", 
         "publish_news", "wait_for_news",
+        "split_command",
+        "NetworkZeroError", "SocketAlreadyExistsError",
+        "SocketTimedOutError", "InvalidAddressError",
     }
     #
     # Find all the names imported into the nw0 package except

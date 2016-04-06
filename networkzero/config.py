@@ -3,7 +3,7 @@
 """
 ENCODING = "UTF-8"
 class _Forever(object):
-    def __repr__(self): return "∞"
+    def __repr__(self): return "<Forever>"
 FOREVER = _Forever()
 SHORT_WAIT = 1 # 1 second
 EVERYTHING = ""

@@ -56,6 +56,8 @@ context = Context()
 #
 class Sockets:
 
+    try_length_ms = 1000 # wait for 1 second at a time
+    
     def __init__(self):
         self._sockets = {}
         self._poller = zmq.Poller()
@@ -77,23 +79,46 @@ class Sockets:
             self._sockets[(caddress, type)] = socket
         return self._sockets[(caddress, type)]
     
-    def _receive_with_timeout(self, socket, timeout_secs):
-        if timeout_secs is config.FOREVER:
-            return socket.recv()
-        
-        sockets = dict(self._poller.poll(1000 * timeout_secs))
-        if socket in sockets:
-            return socket.recv()
+    def intervals_ms(self, timeout_ms):
+        """Generate a series of interval lengths, in ms, which
+        will add up to the number of ms in timeout_ms. If timeout_ms
+        is None, keep returning intervals forever.
+        """
+        if timeout_ms is config.FOREVER:
+            while True:
+                yield self.try_length_ms
         else:
-            raise core.SocketTimedOutError
+            whole_intervals, part_interval = divmod(timeout_ms, self.try_length_ms)
+            for _ in range(whole_intervals):
+                yield self.try_length_ms
+            yield part_interval
 
-    def wait_for_message(self, address, wait_for_secs):
+    def _receive_with_timeout(self, socket, timeout_secs):
+        """Check for socket activity and either return what's
+        received on the socket or time out if timeout_secs expires
+        without anything on the socket.
+        
+        This is implemented in loops of self.try_length_ms ms to
+        allow Ctrl-C handling to take place.
+        """
+        if timeout_secs is config.FOREVER:
+            timeout_ms = config.FOREVER
+        else:
+            timeout_ms = int(1000 * timeout_secs)
+        
+        for interval_ms in self.intervals_ms(timeout_ms):
+            sockets = dict(self._poller.poll(interval_ms))
+            if socket in sockets:
+                return socket.recv()
+        else:
+            raise core.SocketTimedOutError(timeout_secs)
+
+    def wait_for_message(self, address, wait_for_s):
         socket = self.get_socket(address, zmq.REP)
         _logger.debug("socket %s waiting for request", socket)
         try:
-            return _unserialise(self._receive_with_timeout(socket, wait_for_secs))
+            return _unserialise(self._receive_with_timeout(socket, wait_for_s))
         except core.SocketTimedOutError:
-            _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
             return None
         
     def send_message(self, address, request, wait_for_reply_secs):
@@ -109,13 +134,12 @@ class Sockets:
         socket = self.get_socket(address, zmq.PUB)
         return socket.send(_serialise_for_pubsub(topic, data))
     
-    def wait_for_notification(self, address, topic, wait_for_secs):
+    def wait_for_notification(self, address, topic, wait_for_s):
         socket = self.get_socket(address, zmq.SUB)
         socket.subscribe = topic.encode(config.ENCODING)
         try:
-            return _unserialise_for_pubsub(self._receive_with_timeout(socket, wait_for_secs))
+            return _unserialise_for_pubsub(self._receive_with_timeout(socket, wait_for_s))
         except core.SocketTimedOutError:
-            _logger.warn("Socket %s timed out after %s secs", socket, wait_for_secs)
             return None, None
 
 _sockets = Sockets()

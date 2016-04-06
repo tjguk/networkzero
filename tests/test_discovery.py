@@ -13,7 +13,7 @@ is_valid_address = nw0.core.is_valid_address
 
 @pytest.fixture
 def beacon(request):
-    nw0.discovery.start_beacon()
+    nw0.discovery._start_beacon()
     request.addfinalizer(nw0.discovery.stop_beacon)
 
 def test_advertise_no_address(beacon):

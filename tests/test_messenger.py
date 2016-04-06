@@ -36,7 +36,7 @@ def support_test_send_reply(address, queue):
 
 def support_test_send_command(address, queue):
     import networkzero as nw0
-    nw0.wait_for_command(address, queue.put)
+    queue.put(nw0.wait_for_command(address))
 
 def support_wait_for_command(address, queue):
     command = uuid.uuid1()
@@ -116,6 +116,6 @@ def test_wait_for_command():
 
     p = multiprocessing.Process(target=nw0.send_command, args=(address, command_sent), daemon=True)
     p.start()
-    nw0.wait_for_command(address, queue.put)
+    nw0.wait_for_command(address, )
     p.join()
     assert queue.get() == command_sent
