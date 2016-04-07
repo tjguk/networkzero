@@ -1,3 +1,4 @@
+import sys
 import contextlib
 import io
 import logging
@@ -23,7 +24,8 @@ def capture_logging(logger, stream):
 
 @contextlib.contextmanager
 def process(function, args):
-    p = multiprocessing.Process(target=function, args=args, daemon=True)
+    p = multiprocessing.Process(target=function, args=args)
+    p.daemon = True
     p.start()
     yield
     p.join()
@@ -37,6 +39,7 @@ def check_log(logger, pattern):
 def support_test_send_message(address):
     nw0.send_reply(address, nw0.wait_for_message(address))
 
+@pytest.mark.skipif(sys.version_info[:2] == (2, 7), reason="stalls under 2.7")
 def test_send_message():
     address = nw0.core.address()
     message = uuid.uuid4().hex

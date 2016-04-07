@@ -76,6 +76,7 @@ To send notifications::
 from .core import (
     NetworkZeroError, SocketAlreadyExistsError, 
     SocketTimedOutError, InvalidAddressError,
+    SocketInterruptedError,
     address, split_command
 )
 from .discovery import advertise, discover, discover_all

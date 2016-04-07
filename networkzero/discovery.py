@@ -33,7 +33,8 @@ class _Beacon(threading.Thread):
     interval_s = config.BEACON_ADVERT_FREQUENCY_S
     
     def __init__(self):
-        super().__init__(daemon=True)
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
         
         self._stop_event = threading.Event()
         self._services_to_advertise = {}

@@ -130,7 +130,7 @@ def address(address=None):
             raise InvalidAddressError("Port %s must be a number" % port)
         if port not in config.VALID_PORTS:
             raise InvalidAddressError("Port %d must be in range %d - %d" % (
-                port, config.VALID_PORTS.start, config.VALID_PORTS.stop)
+                port, min(config.VALID_PORTS), max(config.VALID_PORTS))
             )
     else:
         random.shuffle(PORT_POOL)
