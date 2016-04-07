@@ -83,3 +83,8 @@ expect a simple string, such as you might type in on the command line.
 Examples
 ~~~~~~~~
 
+..  toctree::
+    :maxdepth: 2
+    :glob:
+    
+    cookbook/*
