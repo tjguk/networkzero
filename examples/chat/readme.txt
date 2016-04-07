@@ -1,17 +1,15 @@
-This example implements a very simple many-to-many
-chat system. One of the machines need to run the
-hub. (If it finds there's one already running, it
-will just shut own again).
+This example implements a very simple hub-based (ie not peer-to-peer)
+chat system. One machine need to start the hub. (If there's one already 
+running, it will just shut down again).
 
-Each other machine will need to run two processes:
-status.py, which shows who's joined and left and who's
-saying what; and chat.py, which enters people into the
-chat and sends their messages.
+Each other machine will need to run two processes: 
 
-The hub ("chat-hub") receives messages via send_message/wait_for_message 
-from the chat processes and sends out notifications ("chat-updates") via
-send_notification/wait_for_notification which are picked up by the status
-processes.
+* status.py shows who's joined and left and who's saying what
+* chat.py enters people into the chat and publishes the messages the type
+
+The hub (advertised as "chat-hub") receives messages via send_message/wait_for_message 
+from the chat processes and sends out notifications (advertised as "chat-updates") which 
+are picked up via send_notification/wait_for_notification by the status processes.
 
 Obviously a more sophisticated version of this could use pygame or
 tkinter windows to display the updates along side the input.

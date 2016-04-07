@@ -12,10 +12,10 @@ while True:
     # Depending on what the command is, update the board or do whatever
     # is needed. 
     #
-    if command == "move":
-        [player] = params
+    if command == "MOVE":
+        [player, move] = params
         board[move] = player
-    elif command == "restart":
+    elif command == "RESTART":
         board.clear()
     
     #
