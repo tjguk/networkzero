@@ -1,7 +1,6 @@
 Advertising & Discovering Network Services
 ==========================================
 
-..  module:: networkzero.discovery
 ..  automodule:: networkzero.discovery
     :synopsis: Network discovery
     :show-inheritance:

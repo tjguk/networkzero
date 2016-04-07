@@ -1,7 +1,6 @@
 Sending & Receiving Messages
 ============================
 
-..  module:: networkzero.messenger
 ..  automodule:: networkzero.messenger
     :synopsis: Sending & receiving messages across the network
     :show-inheritance:

@@ -28,7 +28,7 @@ Design Guidelines
   or knows about the internals of the other.
   
 * All useful functions & constants are exported from the root of the package
-  so either "import networkzero as nw0" or "from networkzero import *"
+  so either "import networkzero as nw0" or "from networkzero import \*"
   will provide the whole of the public API.
 
 * Underscore prefixes will be used to ensure that only the public API 
