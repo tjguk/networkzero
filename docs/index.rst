@@ -53,6 +53,7 @@ Read More
 .. toctree::
    :maxdepth: 3
    
+   usage
    for-teachers
    for-students
    for-developers
