@@ -51,6 +51,14 @@ class SocketTimedOutError(NetworkZeroError):
     def __str__(self):
         return "Gave up waiting after %s seconds; this connection is now unusable" % self.n_seconds
 
+class SocketInterruptedError(NetworkZeroError):
+    
+    def __init__(self, after_n_seconds):
+        self.after_n_seconds = after_n_seconds
+    
+    def __str__(self):
+        return "Interrupted after %s seconds; this connection is now unusable" % self.after_n_seconds
+
 class InvalidAddressError(NetworkZeroError):
     pass
 

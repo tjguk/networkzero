@@ -114,22 +114,27 @@ class Sockets:
         else:
             timeout_ms = int(1000 * timeout_s)
         
-        for interval_ms in self.intervals_ms(timeout_ms):
-            sockets = dict(self._poller.poll(interval_ms))
-            if socket in sockets:
-                if use_multipart:
-                    return socket.recv_multipart()
-                else:
-                    return socket.recv()
-        else:
-            raise core.SocketTimedOutError(timeout_s)
+        ms_so_far = 0
+        try:
+            for interval_ms in self.intervals_ms(timeout_ms):
+                sockets = dict(self._poller.poll(interval_ms))
+                ms_so_far += interval_ms
+                if socket in sockets:
+                    if use_multipart:
+                        return socket.recv_multipart()
+                    else:
+                        return socket.recv()
+            else:
+                raise core.SocketTimedOutError(timeout_s)
+        except KeyboardInterrupt:
+            raise core.SocketInterruptedError(ms_so_far / 1000.0)
 
     def wait_for_message(self, address, wait_for_s):
         socket = self.get_socket(address, zmq.REP)
         _logger.debug("socket %s waiting for request", socket)
         try:
             return _unserialise(self._receive_with_timeout(socket, wait_for_s))
-        except core.SocketTimedOutError:
+        except (core.SocketTimedOutError, core.SocketInterruptedError):
             return None
         
     def send_message(self, address, request, wait_for_reply_s):
@@ -152,7 +157,7 @@ class Sockets:
             result = self._receive_with_timeout(socket, wait_for_s, use_multipart=True)
             unserialised_result = _unserialise_for_pubsub(result)
             return unserialised_result
-        except core.SocketTimedOutError:
+        except (core.SocketTimedOutError, core.SocketInterruptedError):
             return None, None
 
 _sockets = Sockets()
