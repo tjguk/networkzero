@@ -16,6 +16,12 @@ Discussion
 ~~~~~~~~~~
 Blah, blah, advertising a service, blah, blah
 
+Advertise a service with a specific address
+-------------------------------------------
+
+.. literalinclude:: discovery/advertise_a_service_with_a_specific_address.py
+   
+
 Discovering a service
 ---------------------
 
@@ -24,3 +30,9 @@ Discovering a service
 Discussion
 ~~~~~~~~~~
 Blah, blah, discovering a service, blah, blah
+
+Discover all services
+---------------------
+
+.. literalinclude:: discovery/discover_all_services.py
+
