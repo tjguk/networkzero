@@ -188,7 +188,7 @@ def _start_beacon():
         _logger.debug("About to start beacon")
         try:
             _beacon = _Beacon()
-        except WindowsError as exc:
+        except OSError as exc:
             if exc.errno == 10048:
                 _logger.warn("Beacon already active on this machine")
                 #
