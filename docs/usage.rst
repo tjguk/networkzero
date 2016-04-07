@@ -23,7 +23,7 @@ To send a message and receive a reply:
 * :func:`wait_for_message` -- wait for a message to arrive at an address
 * :func:`send_reply` -- send a reply from an address to a message
 
-To send a command line which needs to reply (eg to instruct a robot):
+To send a command line which needs no reply (eg to instruct a robot):
 
 * :func:`send_command` -- send a simple line of text to an address
 * :func:`wait_for_command` -- wait for a command to arrive at an address and acknowledge it immediately
