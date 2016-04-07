@@ -152,7 +152,12 @@ class Sockets:
     
     def wait_for_notification(self, address, topic, wait_for_s):
         socket = self.get_socket(address, zmq.SUB)
-        socket.set(zmq.SUBSCRIBE, topic.encode(config.ENCODING))
+        if isinstance(topic, str):
+            topics = [topic]
+        else:
+            topics = topic
+        for t in topics:
+            socket.set(zmq.SUBSCRIBE, t.encode(config.ENCODING))        
         try:
             result = self._receive_with_timeout(socket, wait_for_s, use_multipart=True)
             unserialised_result = _unserialise_for_pubsub(result)
