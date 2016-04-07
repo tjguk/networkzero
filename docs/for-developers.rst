@@ -96,8 +96,8 @@ needs an IP address and a port number. But you don't need one to use
 the other: it just makes it simpler.
 
 
-Modules
--------
+More Information
+----------------
 
 .. toctree::
    :maxdepth: 2

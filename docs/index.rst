@@ -51,9 +51,8 @@ Read More
 ---------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    
-   intro
    for-teachers
    for-students
    for-developers
