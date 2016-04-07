@@ -15,8 +15,8 @@ It offers two main services:
 What can I use it for?
 ----------------------
 
-Anything which needs one machine or process to talk to another 
-across a network. For example:
+Anything which can make use of one machine or process to talk to 
+another across a network. For example:
 
     * Sending commands to a robot
     * Sending data from an RPi with a sensor to a graphing PC and a long-term storage log
