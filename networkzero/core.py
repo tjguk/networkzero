@@ -136,6 +136,11 @@ def address(address=None):
         random.shuffle(PORT_POOL)
         port = PORT_POOL.pop()
 
+    # if ip is blank, then try to fill in something reasonable
+    # note that socket.getaddrinfo works differently between Windows and Linux
+    if ip == "":
+        ip = socket.gethostname()
+
     #
     # Attempt to valid the ip:port pair as a valid INET address.
     # If the IP address has not been supplied, this will return possible matches
