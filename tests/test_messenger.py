@@ -131,7 +131,7 @@ def support_test_send_notification(address, topic, queue):
 def test_send_notification():
     address = nw0.core.address()
     topic = uuid.uuid4().hex
-    data = uuid.uuid().hex
+    data = uuid.uuid4().hex
     queue = multiprocessing.Queue()
     
     with process(support_test_send_notification, (address, topic, queue)):

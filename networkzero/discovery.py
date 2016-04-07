@@ -58,15 +58,19 @@ class _Beacon(threading.Thread):
     # Commands available via RPC are methods whose
     # name starts with "do_"
     #
-    def do_advertise(self, name, address):
-        _logger.debug("Advertise %s on %s", name, address)
+    def do_advertise(self, name, address, fail_if_exists):
+        _logger.debug("Advertise %s on %s %s", name, address, fail_if_exists)
         canonical_address = core.address(address)
         
         with self._lock:
             address_found = self._services_to_advertise.get(name)
         
         if address_found:
-            _logger.warn("Superseding service %s which already exists on %s", name, address_found)
+            if fail_if_exists:
+                _logger.error("Service %s already exists on %s", name, address_found)
+                return None
+            else:
+                _logger.warn("Superseding service %s which already exists on %s", name, address_found)
 
         with self._lock:
             self._services_to_advertise[name] = canonical_address
@@ -205,7 +209,7 @@ def _rpc(action, *args):
         socket.send(_pack([action] + list(args)))
         return _unpack(socket.recv())
 
-def advertise(name, address=None):
+def advertise(name, address=None, fail_if_exists=False):
     """Advertise a name at an address
     
     Start to advertise service `name` at address `address`. If
@@ -216,10 +220,11 @@ def advertise(name, address=None):
         
     :param name: any text
     :param address: either "ip:port" or None
+    :param fail_if_exists: fail if this name is already registered?
     :returns: the address given or constructed
     """
     _start_beacon()
-    return _rpc("advertise", name, address)
+    return _rpc("advertise", name, address, fail_if_exists)
     return address
 
 def discover(name, wait_for_s=60):

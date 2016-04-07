@@ -38,8 +38,15 @@ class Socket(zmq.Socket):
             self.connect(tcp_address)
         elif self.type in (zmq.REP, zmq.PUB):
             self.bind(tcp_address)
+        #
+        # ZeroMQ has a well-documented feature whereby the
+        # newly-added subscriber will always miss the first
+        # few posts by a publisher. Just to avoid the surprise,
+        # we hackily avoid this here by having each socket
+        # wait a short while once it's bound/connected.
+        #
         if self.type in (zmq.SUB, zmq.PUB):
-            time.sleep(1)
+            time.sleep(0.5)
     address = property(_get_address, _set_address)
 
 class Context(zmq.Context):
