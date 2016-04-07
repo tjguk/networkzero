@@ -139,7 +139,12 @@ def address(address=None):
     # if ip is blank, then try to fill in something reasonable
     # note that socket.getaddrinfo works differently between Windows and Linux
     if ip == "":
-        ip = socket.gethostname()
+        # this is pretty hacky, and I'm not 100% happy with it, but it's
+        # the most reliable method to get your IP address on a Linux box without
+        # hitting a few common distro-based bugs
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("10.0.0.0", 65535))
+        ip = s.getsockname()[0]
 
     #
     # Attempt to valid the ip:port pair as a valid INET address.
