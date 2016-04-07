@@ -47,20 +47,13 @@ which will send back "Hello <name>" whenever <name> is sent to it.
 Other machines or processes discover that service and send
 names to it, receiving a greeting in return.
 
-
-Contents:
+Read More
+---------
 
 .. toctree::
    :maxdepth: 2
    
    intro
-   discovery
-   messenger
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
+   for-teachers
+   for-students
+   for-developers
