@@ -106,7 +106,7 @@ class _Beacon(threading.Thread):
         # closed, force the socket to shut down regardless about 1 second after 
         # it's been closed.
         #
-        self.rpc.linger = 1
+        self.rpc.linger = 0
         self.rpc.bind("tcp://127.0.0.1:%s" % self.rpc_port)
 
     def stop(self):
@@ -291,7 +291,7 @@ def _rpc(action, *args):
         # closed, force the socket to shut down regardless about 1 second after 
         # it's been closed.
         #
-        socket.linger = 1
+        socket.linger = 0
         socket.connect("tcp://localhost:%s" % _Beacon.rpc_port)
         socket.send(_pack([action] + list(args)))
         return _unpack(socket.recv())
