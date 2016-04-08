@@ -151,6 +151,10 @@ def _find_ip4(prefer=None):
             if fnmatch.fnmatch(ip4, pattern):
                 return n, octets
         else:
+            #
+            # Return the address itself if it doesn't match
+            # a preference
+            #
             return n + 1, octets
     
     _logger.debug("Prefer %s", _prefer)
@@ -162,7 +166,16 @@ def _find_ip4(prefer=None):
     if not ip4_addresses:
         raise NoAddressFoundError
     else:
-        _ip4 = min(ip4_addresses, key=sorter)
+        #
+        # Find the best match. If the user actually supplied a preference
+        # list, assume an exact match is required to at least one of the
+        # patterns.
+        #
+        ip4 = min(ip4_addresses, key=sorter)
+        if prefer and not any(fnmatch.fnmatch(ip4, pattern) for pattern in prefer):
+            raise NoAddressFoundError("No address matches any of: %s" % ", ".join(prefer))
+        else:
+            _ip4 = ip4
     
     return _ip4 
 
@@ -246,16 +259,13 @@ def address(address=None):
             else:
                 ip = _find_ip4(prefer)
         else:
-            #~ ip4_addresses = _find_ip4_addresses()
-            #~ if host_or_ip not in ip4_addresses:
-                #~ _logger.warn("%s does not appears to be a valid address for this machine: %s", host_or_ip, ip4_addresses)
             ip = host_or_ip
 
     else:
         _logger.debug("%s is not a valid IP; treating as hostname", host_or_ip)
         
         #
-        # Treaet the string as a hostname and resolve to an IP4 address
+        # Treat the string as a hostname and resolve to an IP4 address
         #
         try:
             ip = socket.gethostbyname(host_or_ip)

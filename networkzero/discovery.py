@@ -111,7 +111,7 @@ class _Beacon(threading.Thread):
         # it's been closed.
         #
         self.rpc.linger = 1
-        self.rpc.bind("tcp://localhost:%s" % self.rpc_port)
+        self.rpc.bind("tcp://127.0.0.1:%s" % self.rpc_port)
 
     def stop(self):
         _logger.debug("About to stop")
@@ -202,8 +202,12 @@ class _Beacon(threading.Thread):
         if not function:
             raise NotImplementedError
         else:
-            _logger.debug("Calling %s with %s", function, params)
-            result = function(*params)
+            _logger.debug("Calling %s with %s", action, params)
+            try:
+                result = function(*params)
+            except:
+                _logger.exception("Problem calling %s with %s", action, params)
+                result = None
             self.rpc.send(_pack(result))
     
     def check_for_adverts(self):
@@ -228,16 +232,26 @@ class _Beacon(threading.Thread):
         _logger.info("Starting discovery")
         t0 = time.time()
         while not self._stop_event.wait(0):
-            self.check_for_commands(wait=False)
+            
             #
-            # Advertise before checking for adverts
-            # so that an advert called and checked within
-            # the same cycle will be found
+            # Check for instruction to advertise/discover from a
+            # local process (this or another on this machine)
+            #
+            self.check_for_commands(wait=False)
+            
+            #
+            # If we've reached the interval tick for advertising,
+            # advertise all the names registered.
             #
             if time.time() > t0 + self.interval_s:
                 self.advertise_names()
                 t0 = time.time()
+            
+            #
+            # See if any advert broadcasts have arrived
+            #
             self.check_for_adverts()
+        
         _logger.info("Ending discovery")
 
 _beacon = None
