@@ -246,9 +246,9 @@ def address(address=None):
             else:
                 ip = _find_ip4(prefer)
         else:
-            ip4_addresses = _find_ip4_addresses()
-            if host_or_ip not in ip4_addresses:
-                _logger.warn("%s does not appears to be a valid address for this machine: %s", host_or_ip, ip4_addresses)
+            #~ ip4_addresses = _find_ip4_addresses()
+            #~ if host_or_ip not in ip4_addresses:
+                #~ _logger.warn("%s does not appears to be a valid address for this machine: %s", host_or_ip, ip4_addresses)
             ip = host_or_ip
 
     else:
