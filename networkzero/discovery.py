@@ -50,6 +50,15 @@ def _unpack(message):
 def _pack(message):
     return marshal.dumps(message)
     
+def bind_with_timeout(function, args, n_tries=3, retry_interval_s=0.5):
+    n_tries_left = n_tries
+    while n_tries_left > 0:
+        try:
+            return function(*args)
+        except zmq.error.ZMQError as exc:
+            _logger.warn("%s; %d tries remaining", exc, n_tries_left)
+            n_tries_left -= 1
+        
 class _Beacon(threading.Thread):
     
     rpc_port = 9998
@@ -91,7 +100,7 @@ class _Beacon(threading.Thread):
         # previous incarnation.
         #
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.socket.bind(("", self.beacon_port))
+        bind_with_timeout(self.socket.bind, (("", self.beacon_port),))
         #
         # Add the raw UDP socket to a ZeroMQ socket poller so we can check whether
         # it's received anything as part of the beacon's main event loop.
@@ -107,19 +116,7 @@ class _Beacon(threading.Thread):
         # it's been closed.
         #
         self.rpc.linger = 0
-        n_tries_left = 3
-        while True:
-            try:
-                self.rpc.bind("tcp://127.0.0.1:%s" % self.rpc_port)
-            except zmq.error.ZMQError as exc:
-                print(exc, n_tries_left, "tries left")
-                n_tries_left -= 1
-                if n_tries_left == 0:
-                    raise
-                else:
-                    time.sleep(0.5)
-            else:
-                break
+        bind_with_timeout(self.rpc.bind, ("tcp://127.0.0.1:%s" % self.rpc_port,))
 
     def stop(self):
         _logger.debug("About to stop")
