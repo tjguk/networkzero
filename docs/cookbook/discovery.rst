@@ -21,6 +21,10 @@ Advertise a service with a specific address
 
 .. literalinclude:: discovery/advertise_a_service_with_a_specific_address.py
    
+Advertise a service with a wildcard address
+-------------------------------------------
+
+.. literalinclude:: discovery/advertise_a_service_with_a_wildcard_address.py
 
 Discovering a service
 ---------------------
