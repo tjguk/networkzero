@@ -50,6 +50,7 @@ class _Beacon(threading.Thread):
         self.poller.register(self.socket, zmq.POLLIN)
         
         self.rpc = sockets.context.socket(zmq.REP)
+        self.rpc.linger = 0
         self.rpc.bind("tcp://*:%s" % self.rpc_port)
 
     def stop(self):
