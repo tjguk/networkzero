@@ -118,6 +118,8 @@ class _Beacon(threading.Thread):
                     raise
                 else:
                     time.sleep(0.5)
+            else:
+                break
 
     def stop(self):
         _logger.debug("About to stop")
