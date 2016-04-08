@@ -107,7 +107,17 @@ class _Beacon(threading.Thread):
         # it's been closed.
         #
         self.rpc.linger = 0
-        self.rpc.bind("tcp://127.0.0.1:%s" % self.rpc_port)
+        n_tries_left = 3
+        while True:
+            try:
+                self.rpc.bind("tcp://127.0.0.1:%s" % self.rpc_port)
+            except zmq.error.ZMQError as exc:
+                print(exc, n_tries_left, "tries left")
+                n_tries_left -= 1
+                if n_tries_left == 0:
+                    raise
+                else:
+                    time.sleep(0.5)
 
     def stop(self):
         _logger.debug("About to stop")
