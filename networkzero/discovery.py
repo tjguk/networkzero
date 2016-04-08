@@ -11,6 +11,10 @@ The discovery module offers:
 * A ZeroMQ socket which allow any process on this machine to 
   communicate with its broadcast socket
 
+In other words, we have a beacon which listens to instructions
+from processes on this machine while sending out and listening 
+to adverts broadcast to/from all machines on the network.
+
 The beacon is started automatically in a daemon thread when the first 
 attempt is made to advertise or discover. If another process already 
 has a beacon running (ie if this beacon can't bind to its port) this 
