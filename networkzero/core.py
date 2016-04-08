@@ -6,6 +6,8 @@ import re
 import shlex
 import socket
 
+import netifaces
+
 from . import config
 
 def get_logger(name):
@@ -60,8 +62,23 @@ class SocketInterruptedError(NetworkZeroError):
     def __str__(self):
         return "Interrupted after %s seconds; this connection is now unusable" % self.after_n_seconds
 
-class InvalidAddressError(NetworkZeroError):
+class AddressError(NetworkZeroError):
     pass
+
+class NoAddressFoundError(AddressError):
+    pass
+
+class InvalidAddressError(NetworkZeroError):
+    
+    def __init__(self, address, errno):
+        self.address = address
+        self.errno = errno
+
+    def __str__(self):
+        message = "%s is not a valid address" % self.address
+        if self.errno:
+            message += "; the system returned an error of %d" % self.errno
+        return message
 
 #
 # Ports in the range 0xc000..0xffff are reserved
@@ -80,7 +97,11 @@ def split_address(address):
     return ip, port
 
 def is_valid_ip(ip):
-    return bool(re.match("^\d{,3}\.\d{,3}\.\d{,3}\.\d{,3}$", ip))
+    #
+    # Check whether a string matches the outline of an IP address, 
+    # allowing "*"  as a wildcard
+    #
+    return bool(re.match(r"^[0-9.*]+$", ip))
 
 def is_valid_port(port, port_range=range(65536)):
     try:
@@ -92,11 +113,27 @@ def is_valid_address(address, port_range=range(65536)):
     ip, port = split_address(address)
     return is_valid_ip(ip) and is_valid_port(port, port_range)
 
-def address_sorter(prefer):
-    return 
+_ip4_addresses = None
+def _find_ip4_addresses():
+    """Find all the IP4 addresses currently bound to interfaces
+    """
+    global _ip4_addresses
+    if _ip4_addresses is None:
+        _ip4_addresses = []
+        for interface in netifaces.interfaces():
+            _logger.debug("Considering interface %s", interface)
+            for info in netifaces.ifaddresses(interface).get(netifaces.AF_INET, []):
+                _logger.debug("Considering info %s", info)
+                if info['addr']:
+                    _logger.debug("Considering IP %s", info['addr'])
+                    _ip4_addresses.append(info['addr'])
+    
+    return _ip4_addresses    
 
 _ip4 = None
-def find_valid_ip4(prefer=None):
+_prefer = None
+def _find_ip4(prefer=None):
+    global _ip4, _prefer
     #
     # Order the list of possible addresses on the machine: if any
     # address pattern is given as a preference (most -> least)
@@ -104,49 +141,48 @@ def find_valid_ip4(prefer=None):
     # numerically. If no preference is given, prefer the most
     # likely useful local address range.
     #
-    if prefer is None:
-        prefer = ["192.168.*"]
+    if prefer:
+        _prefer = prefer
+    else:
+        _prefer = ["192.168.*"]
     def sorter(ip4):
         octets = [int(i) for i in ip4.split(".")]
-        for n, pattern in enumerate(prefer):
+        for n, pattern in enumerate(_prefer):
             if fnmatch.fnmatch(ip4, pattern):
                 return n, octets
         else:
             return n + 1, octets
     
-    global _ip4
+    _logger.debug("Prefer %s", _prefer)
+
+    ip4_addresses = _find_ip4_addresses()
     #
-    # Find the list of valid IP addresses on this machine
+    # Pick an address allowing for user preference if stated
     #
-    addrinfo = socket.getaddrinfo(None, 0, socket.AF_INET)    
-    #
-    # Pick an arbitrary one of the IP addresses matching the address
-    #
-    addresses = [ip for ip, port in [a[-1] for a in addrinfo]]
-    if not addresses:
-        raise InvalidAddressError("No valid address found")
+    if not ip4_addresses:
+        raise NoAddressFoundError
     else:
-        _ip4 = min(addresses, key=sorter)        
+        _ip4 = min(ip4_addresses, key=sorter)
     
     return _ip4 
 
-def address(address=None, prefer=None):
+def address(address=None):
     """Convert one of a number of inputs into a valid ip:port string.
     
     Elements which are not provided are filled in as follows:
         
         * IP Address: the system is asked for the set of IP addresses associated 
-          with the machine and the first one is used.
+          with the machine and the first one is used, preferring those matching
+          `address` if it is a wildcard.
         * Port number: a random port is selected from the pool of dynamically-available 
           port numbers.
       
-    This means you can pass any of: nothing; an IP address; a port number; both
+    This means you can pass any of: nothing; a hostname; an IP address; an IP address with wildcards; a port number
     
     If an IP address is supplied but is invalid, an InvalidAddressError
     exception is raised.
     
     :param address: (optional) Any of: an IP address, a port number, or both
-    :param prefer: (optional) a more->less preferred list of IP matches
     
     :returns: a valid ip:port string for this machine
     """
@@ -156,7 +192,8 @@ def address(address=None, prefer=None):
     # Otherwise, try to determine whether we're looking at an IP
     # or at a port and leave the other one blank
     #
-    ip, port = split_address(address)
+    host_or_ip, port = split_address(address)
+    _logger.debug("Candidate Host: %s, Port: %s", host_or_ip, port)
     
     #
     # If the port has been supplied, make sure it's numeric and that it's a valid
@@ -167,20 +204,63 @@ def address(address=None, prefer=None):
         try:
             port = int(port)
         except ValueError:
-            raise InvalidAddressError("Port %s must be a number" % port)
+            raise AddressError("Port %s must be a number" % port)
         if port not in config.VALID_PORTS:
-            raise InvalidAddressError("Port %d must be in range %d - %d" % (
+            raise AddressError("Port %d must be in range %d - %d" % (
                 port, min(config.VALID_PORTS), max(config.VALID_PORTS))
             )
     else:
         random.shuffle(PORT_POOL)
         port = PORT_POOL.pop()
+    
+    _logger.debug("Port: %s", port)
 
-    if not ip:
-        if _ip4:
-            ip = _ip4
+    #
+    # The address part could be an IP address (optionally including
+    # wildcards to indicate a preference) or a hostname or nothing. 
+    # If it's a hostname we attempt to resolve it to an IP address. 
+    # It it's nothing or a wildcard we query the system for a matching IP address.
+    #
+    if (not host_or_ip) or is_valid_ip(host_or_ip):
+        _logger.debug("%s is a valid IP or blank", host_or_ip)
+        
+        #
+        # If a specific IP address is given, use that.
+        # If an IP pattern is given (ie something with a wildcard in it) treat
+        # that as no address with a preference for that wildcard.
+        #
+        prefer = None
+        if "*" in host_or_ip:
+            host_or_ip, prefer = None, [host_or_ip]
+    
+        #
+        # If no IP (or only a wildcard) is specified, query the system for valid
+        # addresses, preferring those which match the wildcard. NB if the preference
+        # matches one we've previously used, we can return a cached address. But
+        # different requests can specify different wildcard preferences.
+        #
+        if not host_or_ip:
+            _logger.debug("IP is empty; query system for preference %s", prefer)
+            if _ip4 and _prefer == prefer:
+                ip = _ip4
+            else:
+                ip = _find_ip4(prefer)
         else:
-            ip = find_valid_ip4(prefer)
+            ip4_addresses = _find_ip4_addresses()
+            if host_or_ip not in ip4_addresses:
+                _logger.warn("%s does not appears to be a valid address for this machine: %s", host_or_ip, ip4_addresses)
+            ip = host_or_ip
+
+    else:
+        _logger.debug("%s is not a valid IP; treating as hostname", host_or_ip)
+        
+        #
+        # Treaet the string as a hostname and resolve to an IP4 address
+        #
+        try:
+            ip = socket.gethostbyname(host_or_ip)
+        except socket.gaierror as exc:
+            raise InvalidAddressError(host_or_ip, exc.errno)
     
     return "%s:%s" % (ip, port)
 

@@ -46,10 +46,10 @@ class TestAddress(object):
 
     def test_invalid_port_supplied(self):
         address = 123456
-        with pytest.raises(nw0.core.InvalidAddressError):
+        with pytest.raises(nw0.core.AddressError):
             canonical_address = nw0.core.address(address)
 
     def test_invalid_both_supplied(self):
         address = "INVALID:INVALID"
-        with pytest.raises(nw0.core.InvalidAddressError):
+        with pytest.raises(nw0.core.AddressError):
             canonical_address = nw0.core.address(address)
