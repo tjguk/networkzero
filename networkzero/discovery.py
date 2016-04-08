@@ -1,4 +1,30 @@
 # -*- coding: utf-8 -*-
+"""Advertise and collect advertisements of network services
+
+The discovery module offers:
+
+* A UDP broadcast socket which:
+  - Listens for and keeps track of service adverts from this and other 
+    machines & processes
+  - Broadcasts services advertised by this process
+
+* A ZeroMQ socket which allow any process on this machine to 
+  communicate with its broadcast socket
+
+The beacon is started automatically in a daemon thread when the first 
+attempt is made to advertise or discover. If another process already 
+has a beacon running (ie if this beacon can't bind to its port) this 
+beacon thread will shut down with no further action.
+
+The module-level functions to advertise and discover will open a connection
+to a ZeroMQ socket on this machine (which might be hosted by this or by another
+process) and will use this socket to send commands to the beacon thread which
+will update or return its internal list of advertised services.
+
+As an additional convenience, the :func:`advertise` function will, if given no
+specific address, generate a suitable ip:port pair by interrogating the system.
+This functionality is actually in :func:`core.address` (qv).
+"""
 import os, sys
 import atexit
 import collections
@@ -35,31 +61,60 @@ class _Beacon(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
         self.setDaemon(True)
-        
         self._stop_event = threading.Event()
-        self._services_to_advertise = {}
-        self._services_found = {}
+        
+        #
+        # Because incoming broadcasts and requests for discovery can arrive
+        # asynchronously, we need to ensure only one reader/writer at a time
+        #
         self._lock = threading.Lock()
         
+        #
+        # Services we're advertising
+        #
+        self._services_to_advertise = {}
+        #
+        # Broadcast adverts which we've received (some of which will be our own)
+        #
+        self._services_found = {}
+        
+        #
+        # Set the socket up to broadcast datagrams over UDP
+        #
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        #
+        # On Unix, restarting the beacon on a fixed port only a short time after closing
+        # it will often fail because the socket is still in a TIME_WAIT state. If we
+        # set the SO_REUSEADDR option before binding, we'll override that check at the
+        # small risk of picking up some stray packets undelivered to the socket's
+        # previous incarnation.
+        #
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(("", self.beacon_port))
+        #
+        # Add the raw UDP socket to a ZeroMQ socket poller so we can check whether
+        # it's received anything as part of the beacon's main event loop.
+        #
         self.socket_fd = self.socket.fileno()
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
         
         self.rpc = sockets.context.socket(zmq.REP)
+        #
+        # To avoid problems when restarting a beacon not long after it's been
+        # closed, force the socket to shut down regardless about 1 second after 
+        # it's been closed.
+        #
         self.rpc.linger = 1
-        self.rpc.bind("tcp://127.0.0.1:%s" % self.rpc_port)
+        self.rpc.bind("tcp://localhost:%s" % self.rpc_port)
 
     def stop(self):
         _logger.debug("About to stop")
         self._stop_event.set()
 
     #
-    # Commands available via RPC are methods whose
-    # name starts with "do_"
+    # Commands available via RPC are methods whose name starts with "do_"
     #
     def do_advertise(self, name, address, fail_if_exists):
         _logger.debug("Advertise %s on %s %s", name, address, fail_if_exists)
@@ -78,7 +133,7 @@ class _Beacon(threading.Thread):
         with self._lock:
             self._services_to_advertise[name] = canonical_address
             #
-            # As a shortcut, automatically "discover" any services we're advertising
+            # As a shortcut, automatically "discover" any services we ourselves are advertising
             #
             self._services_found[name] = canonical_address
             
@@ -185,6 +240,15 @@ _beacon = None
 _remote_beacon = object()
 
 def _start_beacon():
+    """Start a beacon thread within this process if no beacon is currently
+    running on this machine.
+    
+    In general this is called automatically when an attempt is made to
+    advertise or discover. It might be convenient, though, to call this
+    function directly if you want to have a process whose only job is
+    to host this beacon so that it doesn't shut down when other processes
+    shut down.
+    """
     global _beacon
     if _beacon is None:
         _logger.debug("About to start beacon")
@@ -208,6 +272,11 @@ def _start_beacon():
 def _rpc(action, *args):
     _logger.debug("About to send rpc request %s with args %s", action, args)
     with sockets.context.socket(zmq.REQ) as socket:
+        #
+        # To avoid problems when restarting a beacon not long after it's been
+        # closed, force the socket to shut down regardless about 1 second after 
+        # it's been closed.
+        #
         socket.linger = 1
         socket.connect("tcp://localhost:%s" % _Beacon.rpc_port)
         socket.send(_pack([action] + list(args)))
