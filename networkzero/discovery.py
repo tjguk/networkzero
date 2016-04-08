@@ -62,6 +62,8 @@ def run_with_timeout(function, args, n_tries=3, retry_interval_s=0.5):
         except zmq.error.ZMQError as exc:
             _logger.warn("%s; %d tries remaining", exc, n_tries_left)
             n_tries_left -= 1
+    else:
+        raise core.SocketAlreadyExistsError("Function %s failed after %s tries" % (function, n_tries))
         
 class _Beacon(threading.Thread):
     
