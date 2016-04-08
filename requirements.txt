@@ -1,5 +1,5 @@
 pyzmq
+netifaces
 sphinx
 tox
 pytest
-pytest-cov

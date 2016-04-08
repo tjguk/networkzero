@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import fnmatch
 import logging
 import random
 import re
@@ -91,7 +92,45 @@ def is_valid_address(address, port_range=range(65536)):
     ip, port = split_address(address)
     return is_valid_ip(ip) and is_valid_port(port, port_range)
 
-def address(address=None):
+def address_sorter(prefer):
+    return 
+
+_ip4 = None
+def find_valid_ip4(prefer=None):
+    #
+    # Order the list of possible addresses on the machine: if any
+    # address pattern is given as a preference (most -> least)
+    # give it that weighting, otherwise treat all addresses
+    # numerically. If no preference is given, prefer the most
+    # likely useful local address range.
+    #
+    if prefer is None:
+        prefer = ["192.168.*"]
+    def sorter(ip4):
+        octets = [int(i) for i in ip4.split(".")]
+        for n, pattern in enumerate(prefer):
+            if fnmatch.fnmatch(ip4, pattern):
+                return n, octets
+        else:
+            return n + 1, octets
+    
+    global _ip4
+    #
+    # Find the list of valid IP addresses on this machine
+    #
+    addrinfo = socket.getaddrinfo(None, 0, socket.AF_INET)    
+    #
+    # Pick an arbitrary one of the IP addresses matching the address
+    #
+    addresses = [ip for ip, port in [a[-1] for a in addrinfo]]
+    if not addresses:
+        raise InvalidAddressError("No valid address found")
+    else:
+        _ip4 = min(addresses, key=sorter)        
+    
+    return _ip4 
+
+def address(address=None, prefer=None):
     """Convert one of a number of inputs into a valid ip:port string.
     
     Elements which are not provided are filled in as follows:
@@ -107,6 +146,7 @@ def address(address=None):
     exception is raised.
     
     :param address: (optional) Any of: an IP address, a port number, or both
+    :param prefer: (optional) a more->less preferred list of IP matches
     
     :returns: a valid ip:port string for this machine
     """
@@ -136,23 +176,12 @@ def address(address=None):
         random.shuffle(PORT_POOL)
         port = PORT_POOL.pop()
 
-    #
-    # Attempt to valid the ip:port pair as a valid INET address.
-    # If the IP address has not been supplied, this will return possible matches
-    # from the list of IP addresses associated with this machine
-    #
-    try:
-        addrinfo = socket.getaddrinfo(ip, port, socket.AF_INET)
-    except socket.gaierror as exception:
-        _logger.exception("Invalid Address %s", address)
-        raise InvalidAddressError("Invalid IP %s" % ip)
+    if not ip:
+        if _ip4:
+            ip = _ip4
+        else:
+            ip = find_valid_ip4(prefer)
     
-    #
-    # Pick an arbitrary one of the IP addresses matching the address
-    #
-    for addrinfo in addrinfo:
-        return "%s:%s" % addrinfo[-1]
-    else:
-        raise InvalidAddressError("Invalid address %s" % address)
+    return "%s:%s" % (ip, port)
 
 split_command = shlex.split
