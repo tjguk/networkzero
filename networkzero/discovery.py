@@ -43,6 +43,7 @@ class _Beacon(threading.Thread):
         
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(("", self.beacon_port))
         self.socket_fd = self.socket.fileno()
         self.poller = zmq.Poller()
