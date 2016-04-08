@@ -54,16 +54,16 @@ def _unpack(message):
 def _pack(message):
     return marshal.dumps(message)
     
-def run_with_timeout(function, args, n_tries=3, retry_interval_s=0.5):
+def bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
     n_tries_left = n_tries
     while n_tries_left > 0:
         try:
-            return function(*args)
+            return bind_function(*args)
         except zmq.error.ZMQError as exc:
             _logger.warn("%s; %d tries remaining", exc, n_tries_left)
             n_tries_left -= 1
     else:
-        raise core.SocketAlreadyExistsError("Function %s failed after %s tries" % (function, n_tries))
+        raise core.SocketAlreadyExistsError("Failed to bind after %s tries" % (function, n_tries))
         
 class _Beacon(threading.Thread):
     
@@ -106,7 +106,7 @@ class _Beacon(threading.Thread):
         # previous incarnation.
         #
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        run_with_timeout(self.socket.bind, (("", self.beacon_port),))
+        bind_with_timeout(self.socket.bind, (("", self.beacon_port),))
         #
         # Add the raw UDP socket to a ZeroMQ socket poller so we can check whether
         # it's received anything as part of the beacon's main event loop.
@@ -122,7 +122,7 @@ class _Beacon(threading.Thread):
         # it's been closed.
         #
         self.rpc.linger = 0
-        run_with_timeout(self.rpc.bind, ("tcp://127.0.0.1:%s" % self.rpc_port,))
+        bind_with_timeout(self.rpc.bind, ("tcp://127.0.0.1:%s" % self.rpc_port,))
 
     def stop(self):
         _logger.debug("About to stop")
@@ -179,6 +179,12 @@ class _Beacon(threading.Thread):
         _logger.debug("Discover all")
         with self._lock:
             return list(self._services_found.items())
+    
+    def do_reset(self):
+        _logger.debug("Reset")
+        with self._lock:
+            self._services_found.clear()
+            self._services_to_advertise.clear()
     
     def do_stop(self):
         _logger.debug("Stop")
@@ -356,18 +362,13 @@ def discover_all():
     _start_beacon()
     return _rpc("discover_all")
 
-def stop_beacon():
-    """Stop the beacon, typically to solve a problem with stale names.
+def reset_beacon():
+    """Clear the adverts which the beacon is carrying
     
-    You do not normally need to call this: do not use this unless you 
-    know what you are about. 
+    (This is mostly useful when testing, to get a fresh start)
     """
-    global _beacon
     _start_beacon()
-    if _beacon:
-        _rpc("stop")
-        _beacon.join()
-        _beacon = None
+    return _rpc("reset")
 
 if __name__ == '__main__':
     pass

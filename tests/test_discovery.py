@@ -13,15 +13,13 @@ is_valid_address = nw0.core.is_valid_address
 
 @pytest.fixture
 def beacon(request):
-    nw0.discovery._start_beacon()
-    request.addfinalizer(nw0.discovery.stop_beacon)
+    nw0.discovery.reset_beacon()
 
 def test_advertise_no_address(beacon):
     service = uuid.uuid1().hex
     address = nw0.advertise(service)
     assert is_valid_address(address)
     assert (service, address) in nw0.discover_all()
-    nw0.discovery.stop_beacon()
 
 def test_advertise_no_port(beacon):
     service = uuid.uuid1().hex
