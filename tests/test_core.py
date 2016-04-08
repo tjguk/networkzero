@@ -40,7 +40,7 @@ class TestAddress(object):
         assert is_valid_address(canonical_address)
 
     def test_invalid_ip_supplied(self):
-        address = "INVALID"
+        address = "!!!"
         with pytest.raises(nw0.core.InvalidAddressError):
             canonical_address = nw0.core.address(address)
 
