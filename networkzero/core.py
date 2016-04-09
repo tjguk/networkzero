@@ -267,6 +267,7 @@ def address(address=None):
         except socket.gaierror as exc:
             raise InvalidAddressError(host_or_ip, exc.errno)
     
+    _logger.debug("About to return %s:%s", ip, port)
     return "%s:%s" % (ip, port)
 
 split_command = shlex.split

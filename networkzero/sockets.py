@@ -144,7 +144,10 @@ class Sockets:
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, zmq.REP)
-        return socket.send(_serialise(reply))
+        _logger.debug("Got socket for reply: %s", socket)
+        reply = _serialise(reply)
+        _logger.debug("Reply is: %r", reply)
+        return socket.send(reply)
     
     def send_notification(self, address, topic, data):
         socket = self.get_socket(address, zmq.PUB)
