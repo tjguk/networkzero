@@ -3,7 +3,6 @@ import contextlib
 import io
 import logging
 import multiprocessing
-#~ multiprocessing.set_start_method("spawn")
 import re
 import time
 import uuid
@@ -13,6 +12,8 @@ import pytest
 import networkzero as nw0
 _logger = nw0.core.get_logger("networkzero.tests")
 nw0.core._enable_debug_logging()
+
+context = multiprocessing.get_context("spawn")
 
 @contextlib.contextmanager
 def capture_logging(logger, stream):
@@ -26,7 +27,7 @@ def capture_logging(logger, stream):
 
 @contextlib.contextmanager
 def process(function, args):
-    p = multiprocessing.Process(target=function, args=args)
+    p = context.Process(target=function, args=args)
     p.daemon = True
     _logger.debug("About to start process for %s with %s", function, args)
     p.start()
