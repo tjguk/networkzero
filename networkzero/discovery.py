@@ -63,7 +63,7 @@ def bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
             _logger.warn("%s; %d tries remaining", exc, n_tries_left)
             n_tries_left -= 1
     else:
-        raise core.SocketAlreadyExistsError("Failed to bind after %s tries" % (bind_function, n_tries))
+        raise core.SocketAlreadyExistsError("Failed to bind after %s tries" % n_tries)
         
 class _Beacon(threading.Thread):
     
