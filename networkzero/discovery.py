@@ -272,6 +272,7 @@ class _Beacon(threading.Thread):
             self.check_for_adverts()
         
         _logger.info("Ending discovery")
+        self.rpc.close()
         self.socket.close()
 
 _beacon = None
