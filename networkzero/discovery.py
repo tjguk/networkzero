@@ -30,12 +30,8 @@ specific address, generate a suitable ip:port pair by interrogating the system.
 This functionality is actually in :func:`core.address` (qv).
 """
 import os, sys
-import atexit
-import collections
-import csv
-import io
+import errno
 import marshal
-import random
 import socket
 import threading
 import time
@@ -62,9 +58,15 @@ def bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
         except zmq.error.ZMQError as exc:
             _logger.warn("%s; %d tries remaining", exc, n_tries_left)
             n_tries_left -= 1
+        except OSError as exc:
+            if exc.errno == errno.EADDRINUSE:
+                _logger.warn("%s; %d tries remaining", exc, n_tries_left)
+                n_tries_left -= 1
+            else:
+                raise
     else:
         raise core.SocketAlreadyExistsError("Failed to bind after %s tries" % n_tries)
-        
+
 class _Beacon(threading.Thread):
     
     rpc_port = 9998
@@ -105,8 +107,8 @@ class _Beacon(threading.Thread):
         # small risk of picking up some stray packets undelivered to the socket's
         # previous incarnation.
         #
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        bind_with_timeout(self.socket.bind, (("", self.beacon_port),))
+        #~ self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind(("", self.beacon_port))
         #
         # Add the raw UDP socket to a ZeroMQ socket poller so we can check whether
         # it's received anything as part of the beacon's main event loop.
@@ -291,7 +293,7 @@ def _start_beacon():
         try:
             _beacon = _Beacon()
         except OSError as exc:
-            if exc.errno == 10048:
+            if exc.errno == errno.EADDRINUSE:
                 _logger.warn("Beacon already active on this machine")
                 #
                 # _remote_beacon is simply a not-None sentinel value
