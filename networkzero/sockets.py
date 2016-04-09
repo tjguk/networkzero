@@ -140,8 +140,13 @@ class Sockets:
             return None
         
     def send_message(self, address, request, wait_for_reply_s):
+        _logger.debug("send_message %s, %s, %s", address, request, wait_for_reply_s)
         socket = self.get_socket(address, zmq.REQ)
-        socket.send(_serialise(request))
+        _logger.debug("socket is %s", socket)
+        serialised_request = _serialise(request)
+        _logger.debug("serialised request is %r", serialised_request)
+        socket.send(serialised_request)
+        _logger.debug("request has been sent; waiting foro reply")
         return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
     def send_reply(self, address, reply):

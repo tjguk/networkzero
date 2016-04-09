@@ -54,8 +54,6 @@ def test_send_message():
 # wait_for_message
 #
 def support_test_wait_for_message(address, message):
-    _logger.debug("About to wait 2 secs")
-    time.sleep(2)
     _logger.debug("About to send %s to %s")
     nw0.send_message(address, message)
 
