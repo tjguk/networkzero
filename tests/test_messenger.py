@@ -42,7 +42,7 @@ def support_test_send_message(address):
     nw0.send_reply(address, nw0.wait_for_message(address))
 
 @pytest.mark.skipif(sys.version_info[:2] == (2, 7), reason="stalls under 2.7")
-def _test_send_message():
+def test_send_message():
     address = nw0.core.address()
     message = uuid.uuid4().hex
     
