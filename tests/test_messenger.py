@@ -3,6 +3,7 @@ import contextlib
 import io
 import logging
 import multiprocessing
+multiprocessing.set_start_method("spawn")
 import re
 import time
 import uuid
