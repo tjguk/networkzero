@@ -146,7 +146,7 @@ class Sockets:
         serialised_request = _serialise(request)
         _logger.debug("serialised request is %r", serialised_request)
         socket.send(serialised_request)
-        _logger.debug("request has been sent; waiting foro reply")
+        _logger.debug("request has been sent; waiting for reply")
         return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
     def send_reply(self, address, reply):
