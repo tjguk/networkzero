@@ -133,7 +133,9 @@ class Sockets:
         socket = self.get_socket(address, zmq.REP)
         _logger.debug("socket %s waiting for request", socket)
         try:
-            return _unserialise(self._receive_with_timeout(socket, wait_for_s))
+            message = self._receive_with_timeout(socket, wait_for_s)
+            _logger.debug("Received message %r", message)
+            return _unserialise(message)
         except (core.SocketTimedOutError, core.SocketInterruptedError):
             return None
         

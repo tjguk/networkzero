@@ -36,6 +36,7 @@ def check_log(logger, pattern):
 # send_message
 #
 def support_test_send_message(address):
+    time.sleep(2)
     nw0.send_reply(address, nw0.wait_for_message(address))
 
 @pytest.mark.skipif(sys.version_info[:2] == (2, 7), reason="stalls under 2.7")
@@ -67,6 +68,7 @@ def test_wait_for_message_with_timeout():
 # send_reply
 #
 def support_test_send_reply(address, queue):
+    time.sleep(2)
     message = uuid.uuid4().hex
     reply = nw0.send_message(address, message)
     queue.put(reply)
@@ -90,6 +92,7 @@ def test_send_reply():
 # send_command
 #
 def support_test_send_command(address, queue):
+    time.sleep(2)
     queue.put(nw0.wait_for_command(address))
 
 def test_send_command():
@@ -107,6 +110,7 @@ def test_send_command():
 # wait_for_command
 #
 def support_test_wait_for_command(address, queue):
+    time.sleep(2)
     action = uuid.uuid4().hex
     param = uuid.uuid4().hex
     command = action + " " + param
@@ -125,6 +129,7 @@ def test_wait_for_command():
 # send_notification
 #
 def support_test_send_notification(address, topic, queue):
+    time.sleep(2)
     queue.put("READY")
     topic, data = nw0.wait_for_notification(address, topic, wait_for_s=3)
     queue.put((topic, data))
@@ -145,6 +150,7 @@ def test_send_notification():
 # wait_for_notification
 #
 def support_test_wait_for_notification(address, topic, data):
+    time.sleep(2)
     nw0.send_notification(address, topic, data)
 
 @pytest.mark.xfail(reason="Unresolved race condition in test")
