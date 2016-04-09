@@ -2,18 +2,113 @@ import sys
 import contextlib
 import io
 import logging
-import multiprocessing
+import queue
 import re
+import threading
 import time
 import uuid
 
 import pytest
+import zmq
 
 import networkzero as nw0
 _logger = nw0.core.get_logger("networkzero.tests")
 nw0.core._enable_debug_logging()
 
-context = multiprocessing.get_context("spawn")
+class SupportThread(threading.Thread):
+    """Fake the other end of the message/command/notification chain
+    
+    NB we use as little as possible of the nw0 machinery here,
+    mostly to avoid the possibility of complicated cross-thread
+    interference but also to test our own code.
+    """
+    
+    def __init__(self, context):
+        threading.Thread.__init__(self)
+        _logger.debug("Init thread")
+        self.context = context
+        self.queue = queue.Queue()
+        self.setDaemon(True)
+    
+    def run(self):
+        try:
+            while True:
+                test_name, args = self.queue.get()
+                if test_name is None:
+                    break
+                _logger.info("test_support: %s, %s", test_name, args)
+                function = getattr(self, "support_test_" + test_name)
+                function(*args)
+        except:
+            _logger.exception("Problem in thread")
+
+    def support_test_send_message(self, address):
+        with self.context.socket(zmq.REP) as socket:
+            socket.bind("tcp://%s" % address)
+            message = nw0.sockets._unserialise(socket.recv())
+            socket.send(nw0.sockets._serialise(message))
+
+    def support_test_wait_for_message(self, address, message):
+        with self.context.socket(zmq.REQ) as socket:
+            socket.connect("tcp://%s" % address)
+            socket.send(nw0.sockets._serialise(message))
+
+    def support_test_send_reply(self, address, queue):
+        message = uuid.uuid4().hex
+        with self.context.socket(zmq.REQ) as socket:
+            socket.connect("tcp://%s" % address)
+            socket.send(nw0.sockets._serialise(message))
+            reply = nw0.sockets._unserialise(socket.recv())
+        queue.put(reply)
+
+    def support_test_send_command(self, address, queue):
+        with self.context.socket(zmq.REP) as socket:
+            socket.bind("tcp://%s" % address)
+            message = nw0.sockets._unserialise(socket.recv())
+            components = nw0.split_command(message)
+            queue.put((components[0], components[1:]))
+            socket.send(nw0.sockets._serialise(nw0.config.COMMAND_ACK))
+
+    def support_test_wait_for_command(self, address, queue):
+        action = uuid.uuid4().hex
+        param = uuid.uuid4().hex
+        command = action + " " + param
+        with self.context.socket(zmq.REQ) as socket:
+            socket.connect("tcp://%s" % address)
+            socket.send(nw0.sockets._serialise(command))
+            queue.put((action, [param]))
+
+    def support_test_send_notification(self, address, topic, queue):
+        queue.put("READY")
+        with self.context.socket(zmq.SUB) as socket:
+            socket.connect("tcp://%s" % address)
+            socket.subscribe = topic.encode("utf-8")
+            #
+            # Hackety hack: after connecting & subscribing, wait a bit
+            # for the publisher to catch up!
+            #
+            time.sleep(2)
+            topic, data = nw0.sockets._unserialise_for_pubsub(socket.recv_multipart())
+            queue.put((topic, data))
+
+    def support_test_wait_for_notification(self, address, topic, data):
+        with self.context.socket(zmq.PUB) as socket:
+            socket.bind("tcp://%s" % address)
+            #
+            # Hackety hack: after binding, wait a bit for the publisher 
+            # to catch up to existing subscribers!
+            #
+            time.sleep(2)
+            socket.send_multipart(nw0.sockets._serialise_for_pubsub(topic, data))
+
+@pytest.fixture
+def support(request):
+    thread = SupportThread(nw0.sockets.context)
+    def finalise():
+        thread.queue.put((None, None))
+        thread.join()
+    thread.start()
+    return thread
 
 @contextlib.contextmanager
 def capture_logging(logger, stream):
@@ -24,50 +119,31 @@ def capture_logging(logger, stream):
     yield
     logger.removeHandler(handler)
 
-
-@contextlib.contextmanager
-def process(function, args):
-    p = context.Process(target=function, args=args)
-    p.daemon = True
-    _logger.debug("About to start process for %s with %s", function, args)
-    p.start()
-    yield
-    p.join()
-
 def check_log(logger, pattern):
     return bool(re.search(pattern, logger.getvalue()))
 
 #
 # send_message
 #
-def support_test_send_message(address):
-    nw0.send_reply(address, nw0.wait_for_message(address))
-
-@pytest.mark.skipif(sys.version_info[:2] == (2, 7), reason="stalls under 2.7")
-def test_send_message():
+#~ @pytest.mark.skipif(sys.version_info[:2] == (2, 7), reason="stalls under 2.7")
+def test_send_message(support):
     address = nw0.core.address()
     message = uuid.uuid4().hex
-    
-    with process(support_test_send_message, (address,)):
-        reply = nw0.send_message(address, message)
-        assert reply == message
+    support.queue.put(("send_message", [address]))
+    reply = nw0.send_message(address, message)
+    assert reply == message
 
 #
 # wait_for_message
 #
-def support_test_wait_for_message(address, message):
-    _logger.debug("About to send %s to %s")
-    nw0.send_message(address, message)
 
-def test_wait_for_message():
-    _logger.debug("test_wait_for_message")
+def test_wait_for_message(support):
     address = nw0.core.address()
     message_sent = uuid.uuid4().hex
-
-    with process(support_test_wait_for_message, (address, message_sent)):
-        message_received = nw0.wait_for_message(address)
-        nw0.send_reply(address, message_received)
-        assert message_received == message_sent
+    support.queue.put(("wait_for_message", [address, message_sent]))
+    message_received = nw0.wait_for_message(address, wait_for_s=5)
+    nw0.send_reply(address, message_received)
+    assert message_received == message_sent
 
 def test_wait_for_message_with_timeout():
     address = nw0.core.address()
@@ -77,92 +153,63 @@ def test_wait_for_message_with_timeout():
 #
 # send_reply
 #
-def support_test_send_reply(address, queue):
-    message = uuid.uuid4().hex
-    reply = nw0.send_message(address, message)
-    queue.put(reply)
-
-def test_send_reply():
+def test_send_reply(support):
     address = nw0.core.address()
-    queue = multiprocessing.Queue()
+    reply_queue = queue.Queue()
 
-    #
-    # Fire up a remote process which will send a message and then
-    # put the reply received (ie from this test) onto a mp queue
-    # from which we can retrieve it and check against the message sent
-    #
-    with process(support_test_send_reply, (address, queue)):
-        message_received = nw0.wait_for_message(address)
-        nw0.send_reply(address, message_received)
-        reply = queue.get()
-        assert reply == message_received
+    support.queue.put(("send_reply", [address, reply_queue]))
+    message_received = nw0.wait_for_message(address, wait_for_s=5)
+    nw0.send_reply(address, message_received)
+    reply = reply_queue.get()
+    assert reply == message_received
 
 #
 # send_command
 #
-def support_test_send_command(address, queue):
-    queue.put(nw0.wait_for_command(address))
-
-def test_send_command():
+def test_send_command(support):
     address = nw0.core.address()
     action = uuid.uuid4().hex
     param = uuid.uuid4().hex
     command = action + " " + param
-    queue = multiprocessing.Queue()
+    reply_queue = queue.Queue()
     
-    with process(support_test_send_command, (address, queue)):
-        nw0.send_command(address, command)
-        assert queue.get() == (action, [param])
+    support.queue.put(("send_command", [address, reply_queue]))
+    nw0.send_command(address, command)
+    _logger.debug("test_send_command about to read from %s", reply_queue)
+    assert reply_queue.get() == (action, [param])
 
 #
 # wait_for_command
 #
-def support_test_wait_for_command(address, queue):
-    action = uuid.uuid4().hex
-    param = uuid.uuid4().hex
-    command = action + " " + param
-    queue.put((action, [param]))
-    nw0.send_command(address, command)
-    
-def test_wait_for_command():
+def test_wait_for_command(support):
     address = nw0.core.address()
-    queue = multiprocessing.Queue()
-
-    with process(support_test_wait_for_command, (address, queue)):
-        command_received = nw0.wait_for_command(address)
-        assert command_received == queue.get()
+    reply_queue = queue.Queue()
+    
+    support.queue.put(("wait_for_command", [address, reply_queue]))
+    command_received = nw0.wait_for_command(address, wait_for_s=5)
+    assert command_received == reply_queue.get()
 
 #
 # send_notification
 #
-def support_test_send_notification(address, topic, queue):
-    queue.put("READY")
-    topic, data = nw0.wait_for_notification(address, topic, wait_for_s=3)
-    queue.put((topic, data))
-
-@pytest.mark.xfail(reason="Unresolved race condition in test")
-def test_send_notification():
+def test_send_notification(support):
     address = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
-    queue = multiprocessing.Queue()
+    reply_queue = queue.Queue()
     
-    with process(support_test_send_notification, (address, topic, queue)):
-        assert "READY" == queue.get()
-        nw0.send_notification(address, topic, data)
-        assert queue.get() == (topic, data)
+    support.queue.put(("send_notification", [address, topic, reply_queue]))
+    assert "READY" == reply_queue.get()
+    nw0.send_notification(address, topic, data)
+    assert reply_queue.get() == (topic, data)
 
 #
 # wait_for_notification
 #
-def support_test_wait_for_notification(address, topic, data):
-    nw0.send_notification(address, topic, data)
-
-@pytest.mark.xfail(reason="Unresolved race condition in test")
-def test_wait_for_notification():
+def test_wait_for_notification(support):
     address = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
-
-    with process(support_test_wait_for_notification, (address, topic, data)):
-        assert (topic, data) == nw0.wait_for_notification(address, topic, wait_for_s=5)
+    
+    support.queue.put(("wait_for_notification", [address, topic, data]))
+    assert (topic, data) == nw0.wait_for_notification(address, topic, wait_for_s=5)
