@@ -50,11 +50,14 @@ def test_send_message():
 #
 # wait_for_message
 #
+def support_test_wait_for_message(address, message):
+    nw0.send_message(address, message)
+
 def test_wait_for_message():
     address = nw0.core.address()
     message_sent = uuid.uuid4().hex
 
-    with process(nw0.send_message, (address, message_sent)):
+    with process(support_test_wait_for_message, (address, message_sent)):
         message_received = nw0.wait_for_message(address)
         nw0.send_reply(address, message_received)
         assert message_received == message_sent
