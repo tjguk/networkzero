@@ -21,10 +21,13 @@ def capture_logging(logger, stream):
     yield
     logger.removeHandler(handler)
 
+_logger = nw0.core.get_logger(__name__)
+
 @contextlib.contextmanager
 def process(function, args):
     p = multiprocessing.Process(target=function, args=args)
     p.daemon = True
+    _logger.debug("About to start process for %s with %s", function, args)
     p.start()
     yield
     p.join()
