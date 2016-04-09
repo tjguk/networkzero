@@ -57,6 +57,7 @@ def support_test_wait_for_message(address, message):
     nw0.send_message(address, message)
 
 def test_wait_for_message():
+    _logger.debug("test_wait_for_message")
     address = nw0.core.address()
     message_sent = uuid.uuid4().hex
 
