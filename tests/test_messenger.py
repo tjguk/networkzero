@@ -54,6 +54,7 @@ def test_send_message():
 # wait_for_message
 #
 def support_test_wait_for_message(address, message):
+    _logger.debug("About to send %s to %s")
     nw0.send_message(address, message)
 
 def test_wait_for_message():
@@ -163,7 +164,3 @@ def test_wait_for_notification():
 
     with process(support_test_wait_for_notification, (address, topic, data)):
         assert (topic, data) == nw0.wait_for_notification(address, topic, wait_for_s=5)
-
-def test_test():
-    _logger.debug("test_test")
-    assert True
