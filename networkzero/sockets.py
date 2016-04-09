@@ -68,7 +68,6 @@ class Sockets:
     
     def __init__(self):
         self._sockets = {}
-        self._poller = zmq.Poller()
     
     def get_socket(self, address, type):
         """Create or retrieve a socket of the right type, already connected
@@ -79,7 +78,6 @@ class Sockets:
         if (caddress, type) not in self._sockets:
             socket = context.socket(type)
             socket.address = caddress
-            self._poller.register(socket)
             #
             # Do this last so that an exception earlier will result
             # in the socket not being cached
@@ -113,11 +111,14 @@ class Sockets:
             timeout_ms = config.FOREVER
         else:
             timeout_ms = int(1000 * timeout_s)
-        
+
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
+        _logger.debug
         ms_so_far = 0
         try:
             for interval_ms in self.intervals_ms(timeout_ms):
-                sockets = dict(self._poller.poll(interval_ms))
+                sockets = dict(poller.poll(interval_ms))
                 ms_so_far += interval_ms
                 if socket in sockets:
                     if use_multipart:
