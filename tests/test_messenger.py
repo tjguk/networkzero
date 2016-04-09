@@ -51,7 +51,9 @@ class SupportThread(threading.Thread):
     def support_test_wait_for_message(self, address, message):
         with self.context.socket(zmq.REQ) as socket:
             socket.connect("tcp://%s" % address)
+            _logger.debug("About to send %s", message)
             socket.send(nw0.sockets._serialise(message))
+            socket.recv()
 
     def support_test_send_reply(self, address, queue):
         message = uuid.uuid4().hex
@@ -79,26 +81,27 @@ class SupportThread(threading.Thread):
             queue.put((action, [param]))
 
     def support_test_send_notification(self, address, topic, queue):
-        queue.put("READY")
         with self.context.socket(zmq.SUB) as socket:
             socket.connect("tcp://%s" % address)
             socket.subscribe = topic.encode("utf-8")
-            #
-            # Hackety hack: after connecting & subscribing, wait a bit
-            # for the publisher to catch up!
-            #
-            time.sleep(2)
-            topic, data = nw0.sockets._unserialise_for_pubsub(socket.recv_multipart())
-            queue.put((topic, data))
+            while True:
+                topic, data = nw0.sockets._unserialise_for_pubsub(socket.recv_multipart())
+                queue.put((topic, data))
+                if data is not None:
+                    break
 
-    def support_test_wait_for_notification(self, address, topic, data):
+    def support_test_wait_for_notification(self, address, topic, data, sync_queue):
         with self.context.socket(zmq.PUB) as socket:
             socket.bind("tcp://%s" % address)
-            #
-            # Hackety hack: after binding, wait a bit for the publisher 
-            # to catch up to existing subscribers!
-            #
-            time.sleep(2)
+            while True:
+                socket.send_multipart(nw0.sockets._serialise_for_pubsub(topic, None))
+                try:
+                    sync = sync_queue.get_nowait()
+                except queue.Empty:
+                    time.sleep(0.1)
+                else:
+                    break
+                
             socket.send_multipart(nw0.sockets._serialise_for_pubsub(topic, data))
 
 @pytest.fixture
@@ -142,8 +145,8 @@ def test_wait_for_message(support):
     message_sent = uuid.uuid4().hex
     support.queue.put(("wait_for_message", [address, message_sent]))
     message_received = nw0.wait_for_message(address, wait_for_s=5)
-    nw0.send_reply(address, message_received)
     assert message_received == message_sent
+    nw0.send_reply(address, message_received)
 
 def test_wait_for_message_with_timeout():
     address = nw0.core.address()
@@ -199,9 +202,20 @@ def test_send_notification(support):
     reply_queue = queue.Queue()
     
     support.queue.put(("send_notification", [address, topic, reply_queue]))
-    assert "READY" == reply_queue.get()
+    while True:
+        nw0.send_notification(address, topic, None)
+        try:
+            in_topic, in_data = reply_queue.get_nowait()
+        except queue.Empty:
+            time.sleep(0.1)
+        else:
+            break
+
     nw0.send_notification(address, topic, data)
-    assert reply_queue.get() == (topic, data)
+    while in_data is None:
+        in_topic, in_data = reply_queue.get()
+    
+    assert in_topic, in_data == (topic, data)
 
 #
 # wait_for_notification
@@ -210,6 +224,11 @@ def test_wait_for_notification(support):
     address = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
+    sync_queue = queue.Queue()
     
-    support.queue.put(("wait_for_notification", [address, topic, data]))
-    assert (topic, data) == nw0.wait_for_notification(address, topic, wait_for_s=5)
+    support.queue.put(("wait_for_notification", [address, topic, data, sync_queue]))
+    in_topic, in_data = nw0.wait_for_notification(address, topic, wait_for_s=5)
+    sync_queue.put(True)
+    while in_data is None:
+        in_topic, in_data = nw0.wait_for_notification(address, topic, wait_for_s=5)
+    assert (topic, data) == (in_topic, in_data)
