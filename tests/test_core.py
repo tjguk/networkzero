@@ -51,6 +51,6 @@ class TestAddress(object):
             canonical_address = nw0.core.address(address)
 
     def test_invalid_both_supplied(self):
-        address = "INVALID:INVALID"
+        address = "!!!:INVALID"
         with pytest.raises(nw0.core.AddressError):
             canonical_address = nw0.core.address(address)

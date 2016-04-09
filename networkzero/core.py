@@ -19,12 +19,16 @@ def get_logger(name):
     logger.setLevel(logging.DEBUG)
     return logger
 
+_debug_logging_enabled = False
 def _enable_debug_logging():
-    logger = logging.getLogger("networkzero")
-    handler = logging.FileHandler("network.log", encoding="utf-8")
-    handler.setFormatter(logging.Formatter("%(asctime)s %(process)s %(name)s %(levelname)s %(message)s"))
-    handler.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
+    global _debug_logging_enabled
+    if not _debug_logging_enabled:
+        logger = logging.getLogger("networkzero")
+        handler = logging.FileHandler("network.log", encoding="utf-8")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(process)s %(name)s %(levelname)s %(message)s"))
+        handler.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
+        _debug_logging_enabled = True
 
 _logger = get_logger(__name__)
 
