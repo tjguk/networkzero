@@ -5,6 +5,7 @@ import uuid
 import pytest
 
 import networkzero as nw0
+nw0.core._enable_debug_logging()
 
 is_valid_ip = nw0.core.is_valid_ip
 is_valid_port = nw0.core.is_valid_port

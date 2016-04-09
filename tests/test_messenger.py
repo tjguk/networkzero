@@ -10,6 +10,7 @@ import uuid
 import pytest
 
 import networkzero as nw0
+nw0.core._enable_debug_logging()
 
 @contextlib.contextmanager
 def capture_logging(logger, stream):

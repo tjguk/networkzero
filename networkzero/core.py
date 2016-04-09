@@ -19,7 +19,7 @@ def get_logger(name):
     logger.setLevel(logging.DEBUG)
     return logger
 
-def _setup_debug_logging():
+def _enable_debug_logging():
     logger = logging.getLogger("networkzero")
     handler = logging.FileHandler("network.log", encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(asctime)s %(process)s %(name)s %(levelname)s %(message)s"))
