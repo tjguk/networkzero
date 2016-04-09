@@ -10,6 +10,7 @@ import uuid
 import pytest
 
 import networkzero as nw0
+_logger = nw0.core.get_logger("networkzero.tests")
 nw0.core._enable_debug_logging()
 
 @contextlib.contextmanager
@@ -21,7 +22,6 @@ def capture_logging(logger, stream):
     yield
     logger.removeHandler(handler)
 
-_logger = nw0.core.get_logger(__name__)
 
 @contextlib.contextmanager
 def process(function, args):
@@ -163,3 +163,7 @@ def test_wait_for_notification():
 
     with process(support_test_wait_for_notification, (address, topic, data)):
         assert (topic, data) == nw0.wait_for_notification(address, topic, wait_for_s=5)
+
+def test_test():
+    _logger.debug("test_test")
+    assert True
