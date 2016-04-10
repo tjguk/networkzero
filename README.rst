@@ -14,6 +14,13 @@ Make it easy for learning groups to use simple networking in Python
 
 * Development: https://github.com/tjguk/networkzero
 
+At the time of writing, all 27 tests pass on:
+
+* Windows 8
+* Debian Jessie
+* Raspbian Jessie
+* Mac OS/X 10.11
+
 API
 ---
 
