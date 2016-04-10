@@ -10,6 +10,6 @@ if hub is not None:
 hub = nw0.advertise("chat-hub")
 updates = nw0.advertise("chat-updates")
 while True:
-    action, message = nw0.wait_for_message(hub)
-    nw0.send_reply(hub, "OK")
-    nw0.send_notification(updates, action, message)
+    action, params = nw0.wait_for_message(hub, autoreply=True)
+    print("Action: %s, Params: %s" % (action, params))
+    nw0.send_notification(updates, action, params)
