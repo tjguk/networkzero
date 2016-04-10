@@ -267,6 +267,14 @@ def address(address=None):
         except socket.gaierror as exc:
             _logger.error("gaierror %d", exc.errno)
             raise InvalidAddressError(host_or_ip, exc.errno)
+        else:
+            #
+            # Bizarrely specific check because BT Internet "helpfully"
+            # redirects DNS fails to this address which hosts a sponsored
+            # landing page!
+            #
+            if ip == "92.242.132.15":
+                raise InvalidAddressError(host_or_ip, 0)
     
     _logger.debug("About to return %s:%s", ip, port)
     return "%s:%s" % (ip, port)
