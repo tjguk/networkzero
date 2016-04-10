@@ -8,7 +8,9 @@ if hub is not None:
     raise SystemExit("Hub is already running on %s" % hub)
 
 hub = nw0.advertise("chat-hub")
+print("Hub on", hub)
 updates = nw0.advertise("chat-updates")
+print("Updates on", updates)
 while True:
     action, params = nw0.wait_for_message(hub, autoreply=True)
     print("Action: %s, Params: %s" % (action, params))

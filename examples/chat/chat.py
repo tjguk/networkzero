@@ -1,7 +1,9 @@
 import networkzero as nw0
 
 hub = nw0.discover("chat-hub")
+print("Hub found on", hub)
 updates = nw0.discover("chat-updates")
+print("Updates found on", updates)
 
 name = input("Name: ")
 nw0.send_message(hub, ["JOIN", name])
