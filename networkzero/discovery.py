@@ -31,6 +31,7 @@ specific address, generate a suitable ip:port pair by interrogating the system.
 This functionality is actually in :func:`core.address` (qv).
 """
 import os, sys
+import collections
 import errno
 import marshal
 import socket
@@ -44,6 +45,9 @@ from . import core
 from . import sockets
 
 _logger = core.get_logger(__name__)
+
+Continue = object()
+Empty = object()
 
 def _unpack(message):
     return marshal.loads(message)
@@ -72,7 +76,7 @@ class _Beacon(threading.Thread):
     
     rpc_port = 9998
     beacon_port = 9999
-    finder_timeout_s = 5
+    finder_timeout_s = 0.1
     beacon_message_size = 256
     interval_s = config.BEACON_ADVERT_FREQUENCY_S
     
@@ -95,6 +99,14 @@ class _Beacon(threading.Thread):
         # Broadcast adverts which we've received (some of which will be our own)
         #
         self._services_found = {}
+        
+        #
+        # Command requests are collected on one queue
+        # Command responses are added to another
+        #
+        self._command_request = Empty
+        self._command_response = Empty
+        self._command_lock = threading.Lock()
         
         #
         # Set the socket up to broadcast datagrams over UDP
@@ -134,7 +146,7 @@ class _Beacon(threading.Thread):
     #
     # Commands available via RPC are methods whose name starts with "do_"
     #
-    def do_advertise(self, name, address, fail_if_exists):
+    def do_advertise(self, submitted_at, name, address, fail_if_exists):
         _logger.debug("Advertise %s on %s %s", name, address, fail_if_exists)
         canonical_address = core.address(address)
         
@@ -157,78 +169,38 @@ class _Beacon(threading.Thread):
             
         return canonical_address
     
-    def do_discover(self, name, wait_for_s):
+    def do_discover(self, submitted_at, name, wait_for_s):
         _logger.debug("Discover %s waiting for %s seconds", name, wait_for_s)
         if wait_for_s == -1:
             timeout_expired = lambda t: False
         else:
-            t0 = time.time()
+            t0 = submitted_at
             timeout_expired = lambda t: t > t0 + wait_for_s
                 
-        while True:
             with self._lock:
                 discovered = self._services_found.get(name)
+
             if discovered:
                 return discovered
-            if timeout_expired(time.time()):
-                break
+            elif timeout_expired(time.time()):
+                return None
             else:
-                time.sleep(0.1)
-        else:
-            _logger.warn("%s not discovered after %s seconds", name, wait_for_s)
-            return None
-    
-    def do_discover_all(self):
+                return Continue
+                
+    def do_discover_all(self, submitted_at):
         _logger.debug("Discover all")
         with self._lock:
             return list(self._services_found.items())
     
-    def do_reset(self):
+    def do_reset(self, submitted_at):
         _logger.debug("Reset")
         with self._lock:
             self._services_found.clear()
             self._services_to_advertise.clear()
     
-    def do_stop(self):
+    def do_stop(self, submitted_at):
         _logger.debug("Stop")
         self.stop()
-    
-    #
-    # Main loop:
-    # * Check for incoming RPC commands
-    # * Check for broadcast adverts
-    # * Broadcast any adverts of our own
-    #
-    def check_for_commands(self, wait=True):
-        """The rpc socket will receive a utf-8, json-encoded command
-        with 1 or more segments. The first is always an action; any others
-        are the parameters.
-        
-        The actions result in methods being called on this instance; the result
-        of a method is re-encoded as json and passed back to the socket.
-        """
-        try:
-            message = self.rpc.recv(0 if wait else zmq.NOBLOCK)
-        except zmq.ZMQError as exc:
-            if exc.errno == zmq.EAGAIN:
-                return
-            else:
-                raise
-        
-        _logger.debug("Received command %s", message)
-        segments = _unpack(message)
-        action, params = segments[0], segments[1:]
-        function = getattr(self, "do_" + action.lower(), None)
-        if not function:
-            raise NotImplementedError
-        else:
-            _logger.debug("Calling %s with %s", action, params)
-            try:
-                result = function(*params)
-            except:
-                _logger.exception("Problem calling %s with %s", action, params)
-                result = None
-            self.rpc.send(_pack(result))
     
     def check_for_adverts(self):
         events = dict(self.poller.poll(1000 * self.finder_timeout_s))
@@ -248,29 +220,109 @@ class _Beacon(threading.Thread):
             message = _pack([service_name, service_address])
             self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
 
+    def check_command_requests(self):
+        """If the command RPC socket has an incoming request,
+        separate it into its action and its params and put it
+        on the command request queue.
+        """
+        try:
+            message = self.rpc.recv(zmq.NOBLOCK)
+        except zmq.ZMQError as exc:
+            if exc.errno == zmq.EAGAIN:
+                return
+            else:
+                raise
+
+        _logger.debug("Received command %s", message)
+        segments = _unpack(message)
+        action, params = segments[0], segments[1:]
+        _logger.debug("Adding %s, %s to the request queue", action, params)
+        with self._command_lock:
+            self._command_request = (action, params, time.time())
+            self._command_response = Empty
+
+    def process_commands(self):
+        _logger.debug("process_commands: %s", self._command_request)
+        with self._command_lock:
+            if self._command_request is Empty:
+                return
+        
+        #
+        # Get the first request off the stack and action it.
+        #
+        #
+        with self._command_lock:
+            action, params, submitted_at = self._command_request
+        _logger.debug("Picked %s, %s, %s", action, params, submitted_at)
+        function = getattr(self, "do_" + action.lower(), None)
+        if not function:
+            raise NotImplementedError
+        else:
+            try:
+                result = function(submitted_at, *params)
+            except:
+                _logger.exception("Problem calling %s with %s", action, params)
+                result = None
+            
+            _logger.debug("result = %s", result)
+            
+            #
+            # result will be Continue if the action cannot be completed
+            # (eg a discovery) but its time is not yet expired. Leave
+            # the command on the stack for now.
+            #
+            if result is Continue:
+                return
+            
+            #
+            # If we get a result, add the result to the response
+            # queue and pop the request off the stack.
+            #
+            with self._command_lock:
+                self._command_response = result
+                self._command_request = Empty
+            
+    def check_command_responses(self):
+        """If the latest request has a response, issue it as a
+        reply to the RPC socket.
+        """
+        if self._command_response is not Empty:
+            response, self._command_response = self._command_response, Empty
+            _logger.debug("Sending response %s", response)
+            self.rpc.send(_pack(response))
+                
     def run(self):
         _logger.info("Starting discovery")
         t0 = time.time()
         while not self._stop_event.wait(0):
             
-            #
-            # Check for instruction to advertise/discover from a
-            # local process (this or another on this machine)
-            #
-            self.check_for_commands(wait=False)
-            
-            #
-            # If we've reached the interval tick for advertising,
-            # advertise all the names registered.
-            #
-            if time.time() > t0 + self.interval_s:
-                self.advertise_names()
-                t0 = time.time()
-            
-            #
-            # See if any advert broadcasts have arrived
-            #
-            self.check_for_adverts()
+            try:
+                #
+                # Check for instruction to advertise/discover from a
+                # local process (this or another on this machine)
+                #
+                if self._command_request is Empty:
+                    self.check_command_requests()
+                #~ self.check_for_commands(wait=False)
+                
+                #
+                # If we've reached the interval tick for advertising,
+                # advertise all the names registered.
+                #
+                if time.time() > t0 + self.interval_s:
+                    self.advertise_names()
+                    t0 = time.time()
+                
+                #
+                # See if any advert broadcasts have arrived
+                #
+                self.check_for_adverts()
+                
+                self.process_commands()
+                self.check_command_responses()
+            except:
+                _logger.exception("Problem in beacon thread")
+                break
         
         _logger.info("Ending discovery")
         self.rpc.close()
@@ -352,20 +404,7 @@ def discover(name, wait_for_s=60):
     :returns: the address found or None
     """
     _start_beacon()
-    #
-    # Since discover will effectively block the beacon once
-    # it's started, better to look every second until we're
-    # timed out rather otherwise we have no chance of receiving
-    # any adverts
-    #
-    try_interval_s = 1
-    t1 = time.time() + wait_for_s
-    while True:
-        discovered = _rpc("discover", name, try_interval_s)
-        if discovered:
-            return discovered
-        if time.time() > t1:
-            return None
+    return _rpc("discover", name, wait_for_s)
 
 def discover_all():
     """Produce a list of all known services and their addresses
@@ -389,4 +428,4 @@ def reset_beacon():
     return _rpc("reset")
 
 if __name__ == '__main__':
-    pass
+    _start_beacon()
