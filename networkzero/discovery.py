@@ -72,7 +72,7 @@ class _Beacon(threading.Thread):
     
     rpc_port = 9998
     beacon_port = 9999
-    finder_timeout_s = 0.5
+    finder_timeout_s = 5
     beacon_message_size = 256
     interval_s = config.BEACON_ADVERT_FREQUENCY_S
     
@@ -352,7 +352,20 @@ def discover(name, wait_for_s=60):
     :returns: the address found or None
     """
     _start_beacon()
-    return _rpc("discover", name, wait_for_s)
+    #
+    # Since discover will effectively block the beacon once
+    # it's started, better to look every second until we're
+    # timed out rather otherwise we have no chance of receiving
+    # any adverts
+    #
+    try_interval_s = 1
+    t1 = time.time() + wait_for_s
+    while True:
+        discovered = _rpc("discover", name, try_interval_s)
+        if discovered:
+            return discovered
+        if time.time() > t1:
+            return None
 
 def discover_all():
     """Produce a list of all known services and their addresses
