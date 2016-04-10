@@ -2,7 +2,10 @@ import sys
 import contextlib
 import io
 import logging
-import queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 import re
 import threading
 import time
