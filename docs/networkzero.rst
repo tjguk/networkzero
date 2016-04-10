@@ -10,6 +10,12 @@ NetworkZero
 Functions
 ---------
 
+General
+~~~~~~~
+
+..  autofunction:: address
+..  autofunction:: action_and_params
+
 Discovery
 ~~~~~~~~~
 ..  autofunction:: advertise
@@ -21,7 +27,5 @@ Message-Sending
 ..  autofunction:: send_message
 ..  autofunction:: wait_for_message
 ..  autofunction:: send_reply
-..  autofunction:: send_command
-..  autofunction:: wait_for_command
 ..  autofunction:: send_notification
 ..  autofunction:: wait_for_notification

@@ -1,6 +1,13 @@
 NetworkZero
 ===========
 
+..  note::
+
+    **10th April 2016** This is under heavy development at the moment; things
+    can and will change, possibly quite radically, over the next few days 
+    and weeks. Please do take it for a spin, but don't base any long-term
+    plans on the current API. TJG
+
 NetworkZero makes it easier to use Python to connect things together 
 across the. It's especially focused on the classroom 
 or club situation where short-lived programs need to discover 
@@ -42,9 +49,9 @@ Can you give me an example?
     print(nw0.send_message("World!"))
     print(nw0.send_message("Tim"))
 
-This runs up a service, advertised under the name "hello"
+This runs a service, advertised under the name "hello"
 which will send back "Hello <name>" whenever <name> is sent to it.
-Other machines or processes discover that service and send
+Other machines or processes discover the service and send
 names to it, receiving a greeting in return.
 
 Read More

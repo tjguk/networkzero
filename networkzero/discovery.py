@@ -3,13 +3,14 @@
 
 The discovery module offers:
 
-* A UDP broadcast socket which:
-  - Listens for and keeps track of service adverts from this and other 
-    machines & processes
-  - Broadcasts services advertised by this process
+    * A UDP broadcast socket which:
+      
+      - Listens for and keeps track of service adverts from this and other 
+        machines & processes
+      - Broadcasts services advertised by this process
 
-* A ZeroMQ socket which allow any process on this machine to 
-  communicate with its broadcast socket
+    * A ZeroMQ socket which allow any process on this machine to 
+      communicate with its broadcast socket
 
 In other words, we have a beacon which listens to instructions
 from processes on this machine while sending out and listening 
@@ -30,12 +31,8 @@ specific address, generate a suitable ip:port pair by interrogating the system.
 This functionality is actually in :func:`core.address` (qv).
 """
 import os, sys
-import atexit
-import collections
-import csv
-import io
+import errno
 import marshal
-import random
 import socket
 import threading
 import time
@@ -54,17 +51,23 @@ def _unpack(message):
 def _pack(message):
     return marshal.dumps(message)
     
-def run_with_timeout(function, args, n_tries=3, retry_interval_s=0.5):
+def bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
     n_tries_left = n_tries
     while n_tries_left > 0:
         try:
-            return function(*args)
+            return bind_function(*args)
         except zmq.error.ZMQError as exc:
             _logger.warn("%s; %d tries remaining", exc, n_tries_left)
             n_tries_left -= 1
+        except OSError as exc:
+            if exc.errno == errno.EADDRINUSE:
+                _logger.warn("%s; %d tries remaining", exc, n_tries_left)
+                n_tries_left -= 1
+            else:
+                raise
     else:
-        raise core.SocketAlreadyExistsError("Function %s failed after %s tries" % (function, n_tries))
-        
+        raise core.SocketAlreadyExistsError("Failed to bind after %s tries" % n_tries)
+
 class _Beacon(threading.Thread):
     
     rpc_port = 9998
@@ -105,8 +108,8 @@ class _Beacon(threading.Thread):
         # small risk of picking up some stray packets undelivered to the socket's
         # previous incarnation.
         #
-        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        run_with_timeout(self.socket.bind, (("", self.beacon_port),))
+        #~ self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind(("", self.beacon_port))
         #
         # Add the raw UDP socket to a ZeroMQ socket poller so we can check whether
         # it's received anything as part of the beacon's main event loop.
@@ -122,7 +125,7 @@ class _Beacon(threading.Thread):
         # it's been closed.
         #
         self.rpc.linger = 0
-        run_with_timeout(self.rpc.bind, ("tcp://127.0.0.1:%s" % self.rpc_port,))
+        bind_with_timeout(self.rpc.bind, ("tcp://127.0.0.1:%s" % self.rpc_port,))
 
     def stop(self):
         _logger.debug("About to stop")
@@ -179,6 +182,12 @@ class _Beacon(threading.Thread):
         _logger.debug("Discover all")
         with self._lock:
             return list(self._services_found.items())
+    
+    def do_reset(self):
+        _logger.debug("Reset")
+        with self._lock:
+            self._services_found.clear()
+            self._services_to_advertise.clear()
     
     def do_stop(self):
         _logger.debug("Stop")
@@ -264,6 +273,8 @@ class _Beacon(threading.Thread):
             self.check_for_adverts()
         
         _logger.info("Ending discovery")
+        self.rpc.close()
+        self.socket.close()
 
 _beacon = None
 _remote_beacon = object()
@@ -284,7 +295,7 @@ def _start_beacon():
         try:
             _beacon = _Beacon()
         except OSError as exc:
-            if exc.errno == 10048:
+            if exc.errno == errno.EADDRINUSE:
                 _logger.warn("Beacon already active on this machine")
                 #
                 # _remote_beacon is simply a not-None sentinel value
@@ -356,18 +367,13 @@ def discover_all():
     _start_beacon()
     return _rpc("discover_all")
 
-def stop_beacon():
-    """Stop the beacon, typically to solve a problem with stale names.
+def reset_beacon():
+    """Clear the adverts which the beacon is carrying
     
-    You do not normally need to call this: do not use this unless you 
-    know what you are about. 
+    (This is mostly useful when testing, to get a fresh start)
     """
-    global _beacon
     _start_beacon()
-    if _beacon:
-        _rpc("stop")
-        _beacon.join()
-        _beacon = None
+    return _rpc("reset")
 
 if __name__ == '__main__':
     pass

@@ -5,4 +5,4 @@ player = input("Which player? ")
 
 while True:
     move = input("Move: ")
-    nw0.send_command(address, "MOVE '%s' '%s'" % (player, move))
+    nw0.send_message(address, ["MOVE", player, move])

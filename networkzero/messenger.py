@@ -43,53 +43,6 @@ def send_reply(address, reply):
     _logger.debug("Sending reply %s to %s", reply, address)
     return sockets._sockets.send_reply(address, reply)
 
-def send_command(address, command, wait_for_ack_s=config.FOREVER):
-    """Send a command to an address and wait for acknowledgement
-    
-    The command is a single line of text which will be broken out
-    into a command followed by parameters. If any of the parameters
-    contains a space it needs to be surrounded by quotes, eg::
-    
-      nw0.send_command(address, "REGISTER person 'Bob Builder'")
-    
-    :param address: a nw0 address (eg from `nw0.discover`)
-    :param command: a line of text
-    :param wait_for_ack_s: how many seconds to wait for acknowledgement before giving up
-    
-    NB Nothing is returned, but a WARNING is logged if no acknowledgement
-    is received within `wait_for_ack_s` seconds.
-    """
-    _logger.debug("Sending command %s to address %s waiting %s secs for an ACK")
-    #
-    # Let any SocketTimeoutError bubble up; if we haven't received
-    # a reply, this socket is effectively unusable.
-    #
-    ack = send_message(address, command, wait_for_ack_s)
-    
-    if ack != config.COMMAND_ACK:
-        _logger.warn("Unexpected reply %s for command %s to address %s", ack, command, address)
-
-def wait_for_command(address, wait_for_s=config.FOREVER):
-    """Wait for a command, acknowledge it and split the command in words
-    
-    The first word is assumed to be the command; the remaining words are
-    the parameters. Typically this would be used like this::
-    
-      command, params = nw0.wait_for_command(address)
-    
-    :param address: a nw0 address, eg from `nw0.advertise`
-    :param wait_for_s: how many seconds to wait before giving up
-    :returns: a 2-tuple (command, [parameters]) or (None, []) if out of time
-    """
-    _logger.debug("Waiting %s secs for command on %s", wait_for_s, address)
-    command = wait_for_message(address, wait_for_s)
-    if command is None:
-        return None, []
-    else:
-        send_reply(address, config.COMMAND_ACK)
-        components = shlex.split(command)
-        return components[0], components[1:]
-
 def send_notification(address, topic, data=None):
     """Publish a notification to all subscribers
     

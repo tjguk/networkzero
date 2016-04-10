@@ -68,7 +68,6 @@ class Sockets:
     
     def __init__(self):
         self._sockets = {}
-        self._poller = zmq.Poller()
     
     def get_socket(self, address, type):
         """Create or retrieve a socket of the right type, already connected
@@ -79,7 +78,6 @@ class Sockets:
         if (caddress, type) not in self._sockets:
             socket = context.socket(type)
             socket.address = caddress
-            self._poller.register(socket)
             #
             # Do this last so that an exception earlier will result
             # in the socket not being cached
@@ -113,11 +111,13 @@ class Sockets:
             timeout_ms = config.FOREVER
         else:
             timeout_ms = int(1000 * timeout_s)
-        
+
+        poller = zmq.Poller()
+        poller.register(socket, zmq.POLLIN)
         ms_so_far = 0
         try:
             for interval_ms in self.intervals_ms(timeout_ms):
-                sockets = dict(self._poller.poll(interval_ms))
+                sockets = dict(poller.poll(interval_ms))
                 ms_so_far += interval_ms
                 if socket in sockets:
                     if use_multipart:
@@ -131,20 +131,22 @@ class Sockets:
 
     def wait_for_message(self, address, wait_for_s):
         socket = self.get_socket(address, zmq.REP)
-        _logger.debug("socket %s waiting for request", socket)
         try:
-            return _unserialise(self._receive_with_timeout(socket, wait_for_s))
+            message = self._receive_with_timeout(socket, wait_for_s)
+            return _unserialise(message)
         except (core.SocketTimedOutError, core.SocketInterruptedError):
             return None
         
-    def send_message(self, address, request, wait_for_reply_s):
+    def send_message(self, address, request, wait_for_reply_s   ):
         socket = self.get_socket(address, zmq.REQ)
-        socket.send(_serialise(request))
+        serialised_request = _serialise(request)
+        socket.send(serialised_request)
         return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, zmq.REP)
-        return socket.send(_serialise(reply))
+        reply = _serialise(reply)
+        return socket.send(reply)
     
     def send_notification(self, address, topic, data):
         socket = self.get_socket(address, zmq.PUB)

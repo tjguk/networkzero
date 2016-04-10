@@ -3,14 +3,14 @@ import re
 import pytest
 
 import networkzero as nw0
+nw0.core._enable_debug_logging()
 
 def test_import_all_relevant_names():
     all_names = {
         "advertise", "discover", "discover_all",
-        "send_command", "wait_for_command", 
         "send_message", "wait_for_message", "send_reply", 
         "send_notification", "wait_for_notification",
-        "split_command", "address",
+        "action_and_params", "address",
         "NetworkZeroError", "SocketAlreadyExistsError",
         "SocketTimedOutError", "InvalidAddressError",
         "SocketInterruptedError"

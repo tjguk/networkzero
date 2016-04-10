@@ -19,22 +19,17 @@ def get_logger(name):
     logger.setLevel(logging.DEBUG)
     return logger
 
-def _setup_debug_logging():
-    logger = logging.getLogger("networkzero")
-    handler = logging.FileHandler("network.log", encoding="utf-8")
-    handler.setFormatter(logging.Formatter("%(asctime)s %(name)s %(levelname)s %(message)s"))
-    handler.setLevel(logging.DEBUG)
-    logger.addHandler(handler)
+_debug_logging_enabled = False
+def _enable_debug_logging():
+    global _debug_logging_enabled
+    if not _debug_logging_enabled:
+        logger = logging.getLogger("networkzero")
+        handler = logging.FileHandler("network.log", "w", encoding="utf-8")
+        handler.setFormatter(logging.Formatter("%(asctime)s %(process)s %(name)s %(levelname)s %(message)s"))
+        handler.setLevel(logging.DEBUG)
+        logger.addHandler(handler)
+        _debug_logging_enabled = True
 
-def _get_root_logger():
-    logger = get_logger("networkzero")
-    handler = logging.StreamHandler()
-    handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
-    handler.setLevel(logging.WARN)
-    logger.addHandler(handler)
-    return logger
-
-_root_logger = _get_root_logger()
 _logger = get_logger(__name__)
 
 #
@@ -270,8 +265,17 @@ def address(address=None):
         try:
             ip = socket.gethostbyname(host_or_ip)
         except socket.gaierror as exc:
+            _logger.error("gaierror %d", exc.errno)
             raise InvalidAddressError(host_or_ip, exc.errno)
     
+    _logger.debug("About to return %s:%s", ip, port)
     return "%s:%s" % (ip, port)
 
-split_command = shlex.split
+def action_and_params(commandline):
+    """Treat a command line as an action followed by parameter
+    
+    :param commandline: a string containing at least an action
+    :returns: action, [param1, param2, ...]
+    """
+    components = shlex.split(commandline)
+    return components[0], components[1:]
