@@ -10,6 +10,14 @@ Questions to be answered
   (Just came across http://nanomsg.org/index.html which is something similar
   but implemented by someone who cares about Posix-compliance & open licensing).
   
+  A couple more factors have been pointed out which tell against using
+  ZeroMQ as a dependency:
+  
+  * The build process, at least for some \*nix, might be daunting
+    for teachers unfamiliar with the concepts.
+  * It moves the student one step further away from the underlying
+    sockets.
+  
 * Why not use [some zeroconf implementation]?
 
   This is somewhat the converse of the ZeroMQ question above. And the answer
@@ -57,6 +65,13 @@ Questions to be answered
   which swallows its reply. (Possibly warning if none arrives within a 
   short space of time). But it's likely to be such a common usage pattern 
   that people will usually re-implement it anyway.
+  
+  [**UPDATE**: I've removed the command functionality, having decided that 
+  the value that it brings is not worth the ambiguity it adds to the API. 
+  To help in the common case, I've added an autoreply option to 
+  :func:`networkzero.wait_for_message` and a helper function 
+  :func:`networkzero.action_and_params` which will take a text commandline
+  and return a command and its params.]
 
 * What about multi IP addresses?
 
@@ -79,6 +94,12 @@ Questions to be answered
   defer deciding as most machines, at least in the classroom, will have 
   only one IP address at a time. My slight preference is for (iii) as I see
   it being fairly easy to implement and fairly transparent.
+  
+  [**UPDATE**: We're now using the x-platform netifaces module as an external
+  dependency to determine all local IP4 addresses. We're also allowing
+  the :func:`nw0.address` function to take a wildcard IP so that, for
+  example, you could specify that you want a command in the 192.168.1.*
+  network without knowing exactly which one you're currently bound to.]
 
 * Exceptions or returning None/sentinel?
 
@@ -126,4 +147,6 @@ Questions to be answered
   user decide how to cope with the data.
   
   NB The pubsub stuff has to use bytes because that's how the prefix-matching
-  works.
+  works. [**UPDATE**: pubsub now uses ZeroMQ multipart messages to separate
+  out the topic which has to be bytes from the message which can be any
+  simple Python object].

@@ -3,13 +3,14 @@
 
 The discovery module offers:
 
-* A UDP broadcast socket which:
-  - Listens for and keeps track of service adverts from this and other 
-    machines & processes
-  - Broadcasts services advertised by this process
+    * A UDP broadcast socket which:
+      
+      - Listens for and keeps track of service adverts from this and other 
+        machines & processes
+      - Broadcasts services advertised by this process
 
-* A ZeroMQ socket which allow any process on this machine to 
-  communicate with its broadcast socket
+    * A ZeroMQ socket which allow any process on this machine to 
+      communicate with its broadcast socket
 
 In other words, we have a beacon which listens to instructions
 from processes on this machine while sending out and listening 

@@ -66,23 +66,6 @@ class SupportThread(threading.Thread):
             reply = nw0.sockets._unserialise(socket.recv())
         queue.put(reply)
 
-    def support_test_send_command(self, address, queue):
-        with self.context.socket(zmq.REP) as socket:
-            socket.bind("tcp://%s" % address)
-            message = nw0.sockets._unserialise(socket.recv())
-            components = nw0.split_command(message)
-            queue.put((components[0], components[1:]))
-            socket.send(nw0.sockets._serialise(nw0.config.COMMAND_ACK))
-
-    def support_test_wait_for_command(self, address, queue):
-        action = uuid.uuid4().hex
-        param = uuid.uuid4().hex
-        command = action + " " + param
-        with self.context.socket(zmq.REQ) as socket:
-            socket.connect("tcp://%s" % address)
-            socket.send(nw0.sockets._serialise(command))
-            queue.put((action, [param]))
-
     def support_test_send_notification(self, address, topic, queue):
         with self.context.socket(zmq.SUB) as socket:
             socket.connect("tcp://%s" % address)
@@ -168,32 +151,6 @@ def test_send_reply(support):
     nw0.send_reply(address, message_received)
     reply = reply_queue.get()
     assert reply == message_received
-
-#
-# send_command
-#
-def test_send_command(support):
-    address = nw0.core.address()
-    action = uuid.uuid4().hex
-    param = uuid.uuid4().hex
-    command = action + " " + param
-    reply_queue = queue.Queue()
-    
-    support.queue.put(("send_command", [address, reply_queue]))
-    nw0.send_command(address, command)
-    _logger.debug("test_send_command about to read from %s", reply_queue)
-    assert reply_queue.get() == (action, [param])
-
-#
-# wait_for_command
-#
-def test_wait_for_command(support):
-    address = nw0.core.address()
-    reply_queue = queue.Queue()
-    
-    support.queue.put(("wait_for_command", [address, reply_queue]))
-    command_received = nw0.wait_for_command(address, wait_for_s=5)
-    assert command_received == reply_queue.get()
 
 #
 # send_notification

@@ -265,9 +265,17 @@ def address(address=None):
         try:
             ip = socket.gethostbyname(host_or_ip)
         except socket.gaierror as exc:
+            _logger.error("gaierror %d", exc.errno)
             raise InvalidAddressError(host_or_ip, exc.errno)
     
     _logger.debug("About to return %s:%s", ip, port)
     return "%s:%s" % (ip, port)
 
-split_command = shlex.split
+def action_and_params(commandline):
+    """Treat a command line as an action followed by parameter
+    
+    :param commandline: a string containing at least an action
+    :returns: action, [param1, param2, ...]
+    """
+    components = shlex.split(commandline)
+    return components[0], components[1:]

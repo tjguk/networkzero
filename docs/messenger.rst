@@ -10,11 +10,10 @@ Sending & Receiving Messages
 Introduction
 ------------
 
-The messenger module offers three way to send and/or receive messages across
+The messenger module offers two ways to send and/or receive messages across
 the network:
 
     * Messages: :func:`send_message` / :func:`wait_for_message`
-    * Commands: :func:`send_command` / :func:`wait_for_command`
     * Notifications: :func:`send_notification` / :func:`wait_for_notification`
 
 Functions
@@ -24,11 +23,6 @@ Sending Messages
 ~~~~~~~~~~~~~~~~
 ..  autofunction:: send_message
 ..  autofunction:: wait_for_message
-
-Sending Commands
-~~~~~~~~~~~~~~~~
-..  autofunction:: send_command
-..  autofunction:: wait_for_command
 
 Sending Notifications
 ~~~~~~~~~~~~~~~~~~~~~

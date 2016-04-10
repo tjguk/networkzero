@@ -114,7 +114,6 @@ class Sockets:
 
         poller = zmq.Poller()
         poller.register(socket, zmq.POLLIN)
-        _logger.debug
         ms_so_far = 0
         try:
             for interval_ms in self.intervals_ms(timeout_ms):
@@ -132,29 +131,21 @@ class Sockets:
 
     def wait_for_message(self, address, wait_for_s):
         socket = self.get_socket(address, zmq.REP)
-        _logger.debug("socket %s waiting for request", socket)
         try:
             message = self._receive_with_timeout(socket, wait_for_s)
-            _logger.debug("Received message %r", message)
             return _unserialise(message)
         except (core.SocketTimedOutError, core.SocketInterruptedError):
             return None
         
-    def send_message(self, address, request, wait_for_reply_s):
-        _logger.debug("send_message %s, %s, %s", address, request, wait_for_reply_s)
+    def send_message(self, address, request, wait_for_reply_s   ):
         socket = self.get_socket(address, zmq.REQ)
-        _logger.debug("socket is %s", socket)
         serialised_request = _serialise(request)
-        _logger.debug("serialised request is %r", serialised_request)
         socket.send(serialised_request)
-        _logger.debug("request has been sent; waiting for reply")
         return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, zmq.REP)
-        _logger.debug("Got socket for reply: %s", socket)
         reply = _serialise(reply)
-        _logger.debug("Reply is: %r", reply)
         return socket.send(reply)
     
     def send_notification(self, address, topic, data):

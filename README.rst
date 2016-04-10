@@ -3,6 +3,13 @@ NetworkZero
 
 Make it easy for learning groups to use simple networking in Python
 
+..  note::
+
+    **10th April 2016** This is under heavy development at the moment; things
+    can and will change, possibly quite radically, over the next few days 
+    and weeks. Please do take it for a spin, but don't base any long-term
+    plans on the current API. TJG
+
 * Docs: http://networkzero.readthedocs.org/en/latest/
 
 * Development: https://github.com/tjguk/networkzero

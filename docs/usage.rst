@@ -6,7 +6,7 @@ Usage
 Introduction
 ------------
 
-At its core, NetworkZero offers two discovery functions and 7 message-sending functions:
+At its core, NetworkZero offers two discovery functions and 5 message-sending functions:
 
 Discovery
 ~~~~~~~~~
@@ -23,15 +23,18 @@ To send a message and receive a reply:
 * :func:`wait_for_message` -- wait for a message to arrive at an address
 * :func:`send_reply` -- send a reply from an address to a message
 
-To send a command line which needs no reply (eg to instruct a robot):
-
-* :func:`send_command` -- send a simple line of text to an address
-* :func:`wait_for_command` -- wait for a command to arrive at an address and acknowledge it immediately
-
 To have several machines subscribe to topics from a publisher:
 
 * :func:`send_notification` -- send a message to everyone subscribed to a topic at an address
 * :func:`wait_for_notification` -- subscribe to and wait for a topic-specific message from a publisher
+
+General
+~~~~~~~
+
+A few convenience functions are available to help some common cases:
+
+* :func:`address` -- return a networkzero address valid for this machine
+* :func:`action_and_params` -- split a command line out into an action and a list of parameters
 
 Concepts
 --------
@@ -76,9 +79,6 @@ A message, for the message-passing and notification functionality, can be any bu
 Python object. This will often be just some text, but can be a number or a list, a tuple
 or a dictionary. Note that the restriction to built-in objects is recursive: any lists
 or dictionaries you send can themselves only contain built-in objects.
-
-The command functions :func:`send_command` and :func:`wait_for_command` specifically
-expect a simple string, such as you might type in on the command line.
 
 Examples
 ~~~~~~~~

@@ -1,5 +1,5 @@
 import re
-
+    
 import pytest
 
 import networkzero as nw0
@@ -54,3 +54,21 @@ class TestAddress(object):
         address = "!!!:INVALID"
         with pytest.raises(nw0.core.AddressError):
             canonical_address = nw0.core.address(address)
+
+class TestCommand(object):
+    
+    def test_action_only(self):
+        commandline = "ACTION"
+        assert nw0.core.action_and_params(commandline) == ("ACTION", [])
+    
+    def test_action_and_one_param(self):
+        commandline = "ACTION PARAM1"
+        assert nw0.core.action_and_params(commandline) == ("ACTION", ["PARAM1"])
+    
+    def test_action_and_several_params(self):
+        commandline = "ACTION PARAM1 PARAM2 PARAM3"
+        assert nw0.core.action_and_params(commandline) == ("ACTION", ["PARAM1", "PARAM2", "PARAM3"])
+    
+    def test_param_with_space(self):
+        commandline = "ACTION 'PARAM 1'"
+        assert nw0.core.action_and_params(commandline) == ("ACTION", ["PARAM 1"])
