@@ -21,6 +21,8 @@ At the time of writing, all 27 tests pass on:
 * Raspbian Jessie
 * Mac OS/X 10.11
 
+* Tests: to run the tests, run tox
+
 API
 ---
 
