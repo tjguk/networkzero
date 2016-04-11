@@ -48,10 +48,6 @@ Messaging
 
 * send_reply(address, reply)
 
-* send_command(address, command)
-
-* command = wait_for_command([wait_for_secs=FOREVER])
-
 * send_notification(address, notification)
 
 * wait_for_notification(address[, pattern=EVERYTHING][, wait_for_secs=FOREVER])
