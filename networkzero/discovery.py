@@ -195,10 +195,10 @@ class _Beacon(threading.Thread):
         for service in self._services_to_advertise:
             if service.name == name:
                 if fail_if_exists:
-                    _logger.error("_Service %s already exists on %s", name, address_found)
+                    _logger.error("_Service %s already exists on %s", name, service.address)
                     return None
                 else:
-                    _logger.warn("Superseding service %s which already exists on %s", name, address_found)
+                    _logger.warn("Superseding service %s which already exists on %s", name, service.address)
 
         self._services_to_advertise.append(_Service(name, canonical_address))
         #

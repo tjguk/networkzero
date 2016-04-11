@@ -14,7 +14,8 @@ quotes = [
 
 def main(address_pattern=None):
     my_name = input("Name: ")
-    nw0.advertise(my_name, address_pattern)
+    my_address = nw0.advertise(my_name, address_pattern)
+    print("Advertising %s on %s" % (my_name, my_address))
 
     while True:
         services = [(name, address) for (name, address) in nw0.discover_all() if name != my_name]
