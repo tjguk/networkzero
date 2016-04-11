@@ -19,20 +19,20 @@ def test_advertise_no_address(beacon):
     service = uuid.uuid1().hex
     address = nw0.advertise(service)
     assert is_valid_address(address)
-    assert (service, address) in nw0.discover_all()
+    assert [service, address] in nw0.discover_all()
 
 def test_advertise_no_port(beacon):
     service = uuid.uuid1().hex
     address = nw0.advertise(service)
     assert is_valid_address(address, port_range=nw0.config.DYNAMIC_PORTS)
-    assert (service, address) in nw0.discover_all()
+    assert [service, address] in nw0.discover_all()
 
 def test_advertise_full_address(beacon):
     service = uuid.uuid1().hex
     service_address = "192.168.1.1:1234"
     address = nw0.advertise(service, service_address)
     assert address == service_address
-    assert (service, address) in nw0.discover_all()
+    assert [service, address] in nw0.discover_all()
 
 def test_discover(beacon):
     service = uuid.uuid1().hex
