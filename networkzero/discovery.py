@@ -72,13 +72,20 @@ def bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
     else:
         raise core.SocketAlreadyExistsError("Failed to bind after %s tries" % n_tries)
 
+class Service(object):
+    
+    def __init__(self, name, address):
+        self.name = name
+        self.address = address
+        self.advertise_at = 0
+
 class _Beacon(threading.Thread):
     
     rpc_port = 9998
     beacon_port = 9999
-    finder_timeout_s = 0.1
+    finder_timeout_s = 0.05
     beacon_message_size = 256
-    interval_s = config.BEACON_ADVERT_FREQUENCY_S
+    time_between_broadcasts_s = config.BEACON_ADVERT_FREQUENCY_S
     
     def __init__(self):
         threading.Thread.__init__(self)
@@ -94,7 +101,7 @@ class _Beacon(threading.Thread):
         #
         # Services we're advertising
         #
-        self._services_to_advertise = {}
+        self._services_to_advertise = collections.deque()
         #
         # Broadcast adverts which we've received (some of which will be our own)
         #
@@ -107,6 +114,10 @@ class _Beacon(threading.Thread):
         self._command_request = Empty
         self._command_response = Empty
         self._command_lock = threading.Lock()
+        
+        #
+        # Set up the scheduler
+        #
         
         #
         # Set the socket up to broadcast datagrams over UDP
@@ -151,17 +162,15 @@ class _Beacon(threading.Thread):
         canonical_address = core.address(address)
         
         with self._lock:
-            address_found = self._services_to_advertise.get(name)
-        
-        if address_found:
-            if fail_if_exists:
-                _logger.error("Service %s already exists on %s", name, address_found)
-                return None
-            else:
-                _logger.warn("Superseding service %s which already exists on %s", name, address_found)
+            for service in self._services_to_advertise:
+                if service.name == name:
+                    if fail_if_exists:
+                        _logger.error("Service %s already exists on %s", name, address_found)
+                        return None
+                    else:
+                        _logger.warn("Superseding service %s which already exists on %s", name, address_found)
 
-        with self._lock:
-            self._services_to_advertise[name] = canonical_address
+            self._services_to_advertise.append(Service(name, canonical_address))
             #
             # As a shortcut, automatically "discover" any services we ourselves are advertising
             #
@@ -202,7 +211,7 @@ class _Beacon(threading.Thread):
         _logger.debug("Stop")
         self.stop()
     
-    def check_for_adverts(self):
+    def listen_for_one_advert(self):
         events = dict(self.poller.poll(1000 * self.finder_timeout_s))
         if self.socket_fd not in events: 
             return
@@ -212,15 +221,17 @@ class _Beacon(threading.Thread):
         with self._lock:
             self._services_found[service_name] = service_address
 
-    def advertise_names(self):
+    def broadcast_one_advert(self):
         with self._lock:
-            services = list(self._services_to_advertise.items())
-        
-        for service_name, service_address in services:
-            message = _pack([service_name, service_address])
-            self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
+            if self._services_to_advertise:
+                next_service = self._services_to_advertise[0]
+                if next_service.advertise_at < time.time():
+                    message = _pack([next_service.name, next_service.address])
+                    self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
+                    next_service.advertise_at = time.time() + self.time_between_broadcasts_s
+                    self._services_to_advertise.rotate(-1)
 
-    def check_command_requests(self):
+    def poll_command_request(self):
         """If the command RPC socket has an incoming request,
         separate it into its action and its params and put it
         on the command request queue.
@@ -241,18 +252,14 @@ class _Beacon(threading.Thread):
             self._command_request = (action, params, time.time())
             self._command_response = Empty
 
-    def process_commands(self):
-        _logger.debug("process_commands: %s", self._command_request)
+    def process_command(self):
+        _logger.debug("process_command: %s", self._command_request)
         with self._command_lock:
             if self._command_request is Empty:
                 return
-        
-        #
-        # Get the first request off the stack and action it.
-        #
-        #
-        with self._command_lock:
-            action, params, submitted_at = self._command_request
+            else:
+                action, params, submitted_at = self._command_request
+
         _logger.debug("Picked %s, %s, %s", action, params, submitted_at)
         function = getattr(self, "do_" + action.lower(), None)
         if not function:
@@ -282,7 +289,7 @@ class _Beacon(threading.Thread):
                 self._command_response = result
                 self._command_request = Empty
             
-    def check_command_responses(self):
+    def poll_command_reponse(self):
         """If the latest request has a response, issue it as a
         reply to the RPC socket.
         """
@@ -293,33 +300,34 @@ class _Beacon(threading.Thread):
                 
     def run(self):
         _logger.info("Starting discovery")
-        t0 = time.time()
         while not self._stop_event.wait(0):
             
             try:
                 #
-                # Check for instruction to advertise/discover from a
-                # local process (this or another on this machine)
+                # If we're not already processing one, check for an instruction 
+                # to advertise/discover from a local process.
                 #
                 if self._command_request is Empty:
-                    self.check_command_requests()
-                #~ self.check_for_commands(wait=False)
+                    self.poll_command_request()
                 
                 #
-                # If we've reached the interval tick for advertising,
-                # advertise all the names registered.
+                # Broadcast the first advert whose advertising schedule
+                # has arrived
                 #
-                if time.time() > t0 + self.interval_s:
-                    self.advertise_names()
-                    t0 = time.time()
+                self.broadcast_one_advert()
                 
                 #
-                # See if any advert broadcasts have arrived
+                # See if an advert broadcast has arrived
                 #
-                self.check_for_adverts()
+                self.listen_for_one_advert()
                 
-                self.process_commands()
-                self.check_command_responses()
+                #
+                # If we're processing a command, see if it's complete
+                #
+                if self._command_request is not Empty:
+                    self.process_command()
+                    self.poll_command_reponse()
+            
             except:
                 _logger.exception("Problem in beacon thread")
                 break
