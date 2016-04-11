@@ -33,7 +33,7 @@ This functionality is actually in :func:`core.address` (qv).
 import os, sys
 import collections
 import errno
-import marshal
+import json
 import socket
 import threading
 import time
@@ -59,10 +59,10 @@ Continue = object()
 Empty = object()
 
 def _unpack(message):
-    return marshal.loads(message)
+    return json.loads(message.decode(config.ENCODING))
 
 def _pack(message):
-    return marshal.dumps(message)
+    return json.dumps(message).encode(config.ENCODING)
     
 def timed_out(started_at, wait_for_s):
     #

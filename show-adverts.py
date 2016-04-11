@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 import os, sys
 print(sys.version_info)
-import marshal
+import json
 import select
 import socket
 import time
 
 def _unpack(message):
-    return marshal.loads(message)
+    return json.loads(message.decode("utf-8"))
 
 def _pack(message):
-    return marshal.dumps(message)
+    return json.dumps(message).encode("utf-8")
     
 PORT = 9999
 MESSAGE_SIZE = 256
@@ -31,6 +31,5 @@ while True:
     rlist, wlist, xlist = select.select([s], [], [], 1)
     if s in rlist:
         message, source = s.recvfrom(MESSAGE_SIZE)
-        print("Message: %r, Source: %r" % (message, source))
         service_name, service_address = _unpack(message)
         print("%s: Found %s at %s" % (time.asctime(), service_name, service_address))

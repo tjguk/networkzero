@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import marshal
+import json
 import time
 
 import zmq
@@ -10,10 +10,10 @@ from . import core
 _logger = core.get_logger(__name__)
 
 def _serialise(message):
-    return marshal.dumps(message)
+    return json.dumps(message).encode(config.ENCODING)
 
 def _unserialise(message_bytes):
-    return marshal.loads(message_bytes)
+    return json.loads(message_bytes.decode(config.ENCODING))
 
 def _serialise_for_pubsub(topic, data):
     topic_bytes = topic.encode(config.ENCODING)
