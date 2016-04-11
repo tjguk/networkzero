@@ -12,17 +12,21 @@ quotes = [
     "Old King Cole was a merry old sould",
 ]
 
-my_name = input("Name: ")
-nw0.advertise(my_name)
+def main(address_pattern=None):
+    my_name = input("Name: ")
+    nw0.advertise(my_name, address_pattern)
 
-while True:
-    services = [(name, address) for (name, address) in nw0.discover_all() if name != my_name]
-    
-    for name, address in services:
-        topic, message = nw0.wait_for_notification(address, "quote", wait_for_s=0)
-        if topic:
-            print("%s says: %s" % (name, message))
-        quote = random.choice(quotes)
-        nw0.send_notification(address, "quote", quote)
-    
-    time.sleep(0.5)
+    while True:
+        services = [(name, address) for (name, address) in nw0.discover_all() if name != my_name]
+        
+        for name, address in services:
+            topic, message = nw0.wait_for_notification(address, "quote", wait_for_s=0)
+            if topic:
+                print("%s says: %s" % (name, message))
+            quote = random.choice(quotes)
+            nw0.send_notification(address, "quote", quote)
+        
+        time.sleep(0.5)
+
+if __name__ == '__main__':
+    main(*sys.argv[1:])
