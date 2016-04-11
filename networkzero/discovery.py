@@ -164,14 +164,6 @@ class _Beacon(threading.Thread):
         #
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        #
-        # On Unix, restarting the beacon on a fixed port only a short time after closing
-        # it will often fail because the socket is still in a TIME_WAIT state. If we
-        # set the SO_REUSEADDR option before binding, we'll override that check at the
-        # small risk of picking up some stray packets undelivered to the socket's
-        # previous incarnation.
-        #
-        #~ self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(("", self.beacon_port))
         #
         # Add the raw UDP socket to a ZeroMQ socket poller so we can check whether
@@ -180,14 +172,13 @@ class _Beacon(threading.Thread):
         self.socket_fd = self.socket.fileno()
         self.poller = zmq.Poller()
         self.poller.register(self.socket, zmq.POLLIN)
-        
+
         self.rpc = sockets.context.socket(zmq.REP)
         #
         # To avoid problems when restarting a beacon not long after it's been
         # closed, force the socket to shut down regardless about 1 second after 
         # it's been closed.
         #
-        self.rpc.linger = 0
         _bind_with_timeout(self.rpc.bind, ("tcp://127.0.0.1:%s" % self.rpc_port,))
 
     def stop(self):
@@ -408,7 +399,6 @@ def _rpc(action, *args):
         # closed, force the socket to shut down regardless about 1 second after 
         # it's been closed.
         #
-        socket.linger = 0
         socket.connect("tcp://localhost:%s" % _Beacon.rpc_port)
         socket.send(_pack([action] + list(args)))
         return _unpack(socket.recv())
