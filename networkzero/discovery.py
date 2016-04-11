@@ -145,12 +145,6 @@ class _Beacon(threading.Thread):
         self._stop_event = threading.Event()
         
         #
-        # Because incoming broadcasts and requests for discovery can arrive
-        # asynchronously, we need to ensure only one reader/writer at a time
-        #
-        self._service_lock = threading.Lock()
-        
-        #
         # Services we're advertising
         #
         self._services_to_advertise = collections.deque()
@@ -164,11 +158,6 @@ class _Beacon(threading.Thread):
         # _Command responses are added to another
         #
         self._command = None
-        self._command_lock = threading.Lock()
-        
-        #
-        # Set up the scheduler
-        #
         
         #
         # Set the socket up to broadcast datagrams over UDP
@@ -212,28 +201,26 @@ class _Beacon(threading.Thread):
         _logger.debug("Advertise %s on %s %s", name, address, fail_if_exists)
         canonical_address = core.address(address)
         
-        with self._service_lock:
-            for service in self._services_to_advertise:
-                if service.name == name:
-                    if fail_if_exists:
-                        _logger.error("_Service %s already exists on %s", name, address_found)
-                        return None
-                    else:
-                        _logger.warn("Superseding service %s which already exists on %s", name, address_found)
+        for service in self._services_to_advertise:
+            if service.name == name:
+                if fail_if_exists:
+                    _logger.error("_Service %s already exists on %s", name, address_found)
+                    return None
+                else:
+                    _logger.warn("Superseding service %s which already exists on %s", name, address_found)
 
-            self._services_to_advertise.append(_Service(name, canonical_address))
-            #
-            # As a shortcut, automatically "discover" any services we ourselves are advertising
-            #
-            self._services_found[name] = canonical_address
+        self._services_to_advertise.append(_Service(name, canonical_address))
+        #
+        # As a shortcut, automatically "discover" any services we ourselves are advertising
+        #
+        self._services_found[name] = canonical_address
             
         return canonical_address
     
     def do_discover(self, started_at, name, wait_for_s):
         _logger.debug("Discover %s waiting for %s seconds", name, wait_for_s)
                 
-        with self._service_lock:
-            discovered = self._services_found.get(name)
+        discovered = self._services_found.get(name)
 
         #
         # If we've got a match, return it. Otherwise:
@@ -251,14 +238,12 @@ class _Beacon(threading.Thread):
                 
     def do_discover_all(self, started_at):
         _logger.debug("Discover all")
-        with self._service_lock:
-            return list(self._services_found.items())
+        return list(self._services_found.items())
     
     def do_reset(self, started_at):
         _logger.debug("Reset")
-        with self._service_lock:
-            self._services_found.clear()
-            self._services_to_advertise.clear()
+        self._services_found.clear()
+        self._services_to_advertise.clear()
     
     def do_stop(self, started_at):
         _logger.debug("Stop")
@@ -271,18 +256,16 @@ class _Beacon(threading.Thread):
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
         service_name, service_address = _unpack(message)
-        with self._service_lock:
-            self._services_found[service_name] = service_address
+        self._services_found[service_name] = service_address
 
     def broadcast_one_advert(self):
-        with self._service_lock:
-            if self._services_to_advertise:
-                next_service = self._services_to_advertise[0]
-                if next_service.advertise_at < time.time():
-                    message = _pack([next_service.name, next_service.address])
-                    self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
-                    next_service.advertise_at = time.time() + self.time_between_broadcasts_s
-                    self._services_to_advertise.rotate(-1)
+        if self._services_to_advertise:
+            next_service = self._services_to_advertise[0]
+            if next_service.advertise_at < time.time():
+                message = _pack([next_service.name, next_service.address])
+                self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
+                next_service.advertise_at = time.time() + self.time_between_broadcasts_s
+                self._services_to_advertise.rotate(-1)
 
     def poll_command_request(self):
         """If the command RPC socket has an incoming request,
@@ -301,16 +284,14 @@ class _Beacon(threading.Thread):
         segments = _unpack(message)
         action, params = segments[0], segments[1:]
         _logger.debug("Adding %s, %s to the request queue", action, params)
-        with self._command_lock:
-            self._command = _Command(action, params)
+        self._command = _Command(action, params)
 
     def process_command(self):
-        with self._command_lock:
-            if not self._command:
-                return
-            else:
-                _logger.debug("process_command: %s", self._command.action)
-                command = self._command
+        if not self._command:
+            return
+        else:
+            _logger.debug("process_command: %s", self._command.action)
+            command = self._command
 
         _logger.debug("Picked %s, %s, %s", self._command.action, self._command.params, self._command.started_at)
         function = getattr(self, "do_" + command.action.lower(), None)
@@ -337,18 +318,16 @@ class _Beacon(threading.Thread):
             # If we get a result, add the result to the response
             # queue and pop the request off the stack.
             #
-            with self._command_lock:
-                self._command.response = result
+            self._command.response = result
 
     def poll_command_reponse(self):
         """If the latest request has a response, issue it as a
         reply to the RPC socket.
         """
-        with self._command_lock:
-            if self._command.response is not Empty:
-                _logger.debug("Sending response %s", self._command.response)
-                self.rpc.send(_pack(self._command.response))
-                self._command = None
+        if self._command.response is not Empty:
+            _logger.debug("Sending response %s", self._command.response)
+            self.rpc.send(_pack(self._command.response))
+            self._command = None
                 
     def run(self):
         _logger.info("Starting discovery")
