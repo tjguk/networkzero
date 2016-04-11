@@ -46,7 +46,16 @@ from . import sockets
 
 _logger = core.get_logger(__name__)
 
+#
+# Continue is a sentinel value to indicate that a command
+# has completed its scheduled slice without producing a result
+# and without exceeding its overall timeout.
+#
 Continue = object()
+
+#
+# Empty is a sentinel to distinguish between no result and a result of None
+#
 Empty = object()
 
 def _unpack(message):
@@ -56,12 +65,22 @@ def _pack(message):
     return marshal.dumps(message)
     
 def timed_out(started_at, wait_for_s):
+    #
+    # If the wait time is the sentinel value FOREVER, never time out
+    # Otherwise time out if the current time is more than wait_for_s seconds after the start time
+    #
     if wait_for_s is config.FOREVER:
         return False
     else:
         return time.time() > started_at + wait_for_s
     
-def bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
+def _bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
+    """Attempt to bind a socket a number of times with a short interval in between
+    
+    Especially on Linux, crashing out of a networkzero process can leave the sockets
+    lingering and unable to re-bind on startup. We give it a few goes here to see if
+    we can bind within a couple of seconds.
+    """
     n_tries_left = n_tries
     while n_tries_left > 0:
         try:
@@ -78,7 +97,11 @@ def bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
     else:
         raise core.SocketAlreadyExistsError("Failed to bind after %s tries" % n_tries)
 
-class Service(object):
+class _Service(object):
+    """Convenience container with details of a service to be advertised
+    
+    Includes the name, address and when it is next due to be advertised
+    """
     
     def __init__(self, name, address):
         self.name = name
@@ -86,9 +109,16 @@ class Service(object):
         self.advertise_at = 0
     
     def __str__(self):
-        return "Service %s at %s due to advertise at %s" % (self.name, self.address, time.ctime(self.advertise_at))
+        return "_Service %s at %s due to advertise at %s" % (self.name, self.address, time.ctime(self.advertise_at))
 
-class Command(object):
+class _Command(object):
+    """Convenience container with details of a running command
+    
+    Includes the action ("discover", "advertise" etc.), its parameters, when
+    it was started -- for timeout purposes -- and any response.
+    
+    This is used by the process_command functionality
+    """
     
     def __init__(self, action, params):
         self.action = action
@@ -97,9 +127,11 @@ class Command(object):
         self.response = Empty
 
     def __str__(self):
-        return "Command: %s (%s) started at %s -> %s" % (self.action, self.params, time.ctime(self.started_at), self.response) 
+        return "_Command: %s (%s) started at %s -> %s" % (self.action, self.params, time.ctime(self.started_at), self.response) 
 
 class _Beacon(threading.Thread):
+    """Threaded beacon to: listen for adverts & broadcast adverts
+    """
     
     rpc_port = 9998
     beacon_port = 9999
@@ -128,8 +160,8 @@ class _Beacon(threading.Thread):
         self._services_found = {}
         
         #
-        # Command requests are collected on one queue
-        # Command responses are added to another
+        # _Command requests are collected on one queue
+        # _Command responses are added to another
         #
         self._command = None
         self._command_lock = threading.Lock()
@@ -167,7 +199,7 @@ class _Beacon(threading.Thread):
         # it's been closed.
         #
         self.rpc.linger = 0
-        bind_with_timeout(self.rpc.bind, ("tcp://127.0.0.1:%s" % self.rpc_port,))
+        _bind_with_timeout(self.rpc.bind, ("tcp://127.0.0.1:%s" % self.rpc_port,))
 
     def stop(self):
         _logger.debug("About to stop")
@@ -184,12 +216,12 @@ class _Beacon(threading.Thread):
             for service in self._services_to_advertise:
                 if service.name == name:
                     if fail_if_exists:
-                        _logger.error("Service %s already exists on %s", name, address_found)
+                        _logger.error("_Service %s already exists on %s", name, address_found)
                         return None
                     else:
                         _logger.warn("Superseding service %s which already exists on %s", name, address_found)
 
-            self._services_to_advertise.append(Service(name, canonical_address))
+            self._services_to_advertise.append(_Service(name, canonical_address))
             #
             # As a shortcut, automatically "discover" any services we ourselves are advertising
             #
@@ -270,7 +302,7 @@ class _Beacon(threading.Thread):
         action, params = segments[0], segments[1:]
         _logger.debug("Adding %s, %s to the request queue", action, params)
         with self._command_lock:
-            self._command = Command(action, params)
+            self._command = _Command(action, params)
 
     def process_command(self):
         with self._command_lock:
