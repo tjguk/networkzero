@@ -55,6 +55,12 @@ def _unpack(message):
 def _pack(message):
     return marshal.dumps(message)
     
+def timed_out(started_at, wait_for_s):
+    if wait_for_s is config.FOREVER:
+        return False
+    else:
+        return time.time() > started_at + wait_for_s
+    
 def bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
     n_tries_left = n_tries
     while n_tries_left > 0:
@@ -170,7 +176,7 @@ class _Beacon(threading.Thread):
     #
     # Commands available via RPC are methods whose name starts with "do_"
     #
-    def do_advertise(self, submitted_at, name, address, fail_if_exists):
+    def do_advertise(self, started_at, name, address, fail_if_exists):
         _logger.debug("Advertise %s on %s %s", name, address, fail_if_exists)
         canonical_address = core.address(address)
         
@@ -191,36 +197,38 @@ class _Beacon(threading.Thread):
             
         return canonical_address
     
-    def do_discover(self, submitted_at, name, wait_for_s):
+    def do_discover(self, started_at, name, wait_for_s):
         _logger.debug("Discover %s waiting for %s seconds", name, wait_for_s)
-        if wait_for_s == -1:
-            timeout_expired = lambda t: False
-        else:
-            t0 = submitted_at
-            timeout_expired = lambda t: t > t0 + wait_for_s
                 
-            with self._service_lock:
-                discovered = self._services_found.get(name)
+        with self._service_lock:
+            discovered = self._services_found.get(name)
 
-            if discovered:
-                return discovered
-            elif timeout_expired(time.time()):
-                return None
-            else:
-                return Continue
+        #
+        # If we've got a match, return it. Otherwise:
+        # * If we're due to wait for ever, continue
+        # * If we're out of time return None
+        # * Otherwise we've still got time left: continue
+        #
+        if discovered:
+            return discovered
+        
+        if timed_out(started_at, wait_for_s):
+            return None
+        else:
+            return Continue
                 
-    def do_discover_all(self, submitted_at):
+    def do_discover_all(self, started_at):
         _logger.debug("Discover all")
         with self._service_lock:
             return list(self._services_found.items())
     
-    def do_reset(self, submitted_at):
+    def do_reset(self, started_at):
         _logger.debug("Reset")
         with self._service_lock:
             self._services_found.clear()
             self._services_to_advertise.clear()
     
-    def do_stop(self, submitted_at):
+    def do_stop(self, started_at):
         _logger.debug("Stop")
         self.stop()
     
