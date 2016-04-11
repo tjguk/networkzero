@@ -78,6 +78,20 @@ class Service(object):
         self.name = name
         self.address = address
         self.advertise_at = 0
+    
+    def __str__(self):
+        return "Service %s at %s due to advertise at %s" % (self.name, self.address, time.ctime(self.advertise_at))
+
+class Command(object):
+    
+    def __init__(self, action, params):
+        self.action = action
+        self.params = params
+        self.started_at = time.time()
+        self.response = Empty
+
+    def __str__(self):
+        return "Command: %s (%s) started at %s -> %s" % (self.action, self.params, time.ctime(self.started_at), self.response) 
 
 class _Beacon(threading.Thread):
     
@@ -96,7 +110,7 @@ class _Beacon(threading.Thread):
         # Because incoming broadcasts and requests for discovery can arrive
         # asynchronously, we need to ensure only one reader/writer at a time
         #
-        self._lock = threading.Lock()
+        self._service_lock = threading.Lock()
         
         #
         # Services we're advertising
@@ -111,8 +125,7 @@ class _Beacon(threading.Thread):
         # Command requests are collected on one queue
         # Command responses are added to another
         #
-        self._command_request = Empty
-        self._command_response = Empty
+        self._command = None
         self._command_lock = threading.Lock()
         
         #
@@ -161,7 +174,7 @@ class _Beacon(threading.Thread):
         _logger.debug("Advertise %s on %s %s", name, address, fail_if_exists)
         canonical_address = core.address(address)
         
-        with self._lock:
+        with self._service_lock:
             for service in self._services_to_advertise:
                 if service.name == name:
                     if fail_if_exists:
@@ -186,7 +199,7 @@ class _Beacon(threading.Thread):
             t0 = submitted_at
             timeout_expired = lambda t: t > t0 + wait_for_s
                 
-            with self._lock:
+            with self._service_lock:
                 discovered = self._services_found.get(name)
 
             if discovered:
@@ -198,12 +211,12 @@ class _Beacon(threading.Thread):
                 
     def do_discover_all(self, submitted_at):
         _logger.debug("Discover all")
-        with self._lock:
+        with self._service_lock:
             return list(self._services_found.items())
     
     def do_reset(self, submitted_at):
         _logger.debug("Reset")
-        with self._lock:
+        with self._service_lock:
             self._services_found.clear()
             self._services_to_advertise.clear()
     
@@ -218,11 +231,11 @@ class _Beacon(threading.Thread):
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
         service_name, service_address = _unpack(message)
-        with self._lock:
+        with self._service_lock:
             self._services_found[service_name] = service_address
 
     def broadcast_one_advert(self):
-        with self._lock:
+        with self._service_lock:
             if self._services_to_advertise:
                 next_service = self._services_to_advertise[0]
                 if next_service.advertise_at < time.time():
@@ -249,26 +262,25 @@ class _Beacon(threading.Thread):
         action, params = segments[0], segments[1:]
         _logger.debug("Adding %s, %s to the request queue", action, params)
         with self._command_lock:
-            self._command_request = (action, params, time.time())
-            self._command_response = Empty
+            self._command = Command(action, params)
 
     def process_command(self):
-        _logger.debug("process_command: %s", self._command_request)
         with self._command_lock:
-            if self._command_request is Empty:
+            if not self._command:
                 return
             else:
-                action, params, submitted_at = self._command_request
+                _logger.debug("process_command: %s", self._command.action)
+                command = self._command
 
-        _logger.debug("Picked %s, %s, %s", action, params, submitted_at)
-        function = getattr(self, "do_" + action.lower(), None)
+        _logger.debug("Picked %s, %s, %s", self._command.action, self._command.params, self._command.started_at)
+        function = getattr(self, "do_" + command.action.lower(), None)
         if not function:
-            raise NotImplementedError
+            raise NotImplementedError("%s is not a valid action")
         else:
             try:
-                result = function(submitted_at, *params)
+                result = function(command.started_at, *command.params)
             except:
-                _logger.exception("Problem calling %s with %s", action, params)
+                _logger.exception("Problem calling %s with %s", command.action, command.params)
                 result = None
             
             _logger.debug("result = %s", result)
@@ -286,17 +298,17 @@ class _Beacon(threading.Thread):
             # queue and pop the request off the stack.
             #
             with self._command_lock:
-                self._command_response = result
-                self._command_request = Empty
-            
+                self._command.response = result
+
     def poll_command_reponse(self):
         """If the latest request has a response, issue it as a
         reply to the RPC socket.
         """
-        if self._command_response is not Empty:
-            response, self._command_response = self._command_response, Empty
-            _logger.debug("Sending response %s", response)
-            self.rpc.send(_pack(response))
+        with self._command_lock:
+            if self._command.response is not Empty:
+                _logger.debug("Sending response %s", self._command.response)
+                self.rpc.send(_pack(self._command.response))
+                self._command = None
                 
     def run(self):
         _logger.info("Starting discovery")
@@ -304,10 +316,10 @@ class _Beacon(threading.Thread):
             
             try:
                 #
-                # If we're not already processing one, check for an instruction 
+                # If we're not already processing one, check for an command
                 # to advertise/discover from a local process.
                 #
-                if self._command_request is Empty:
+                if not self._command:
                     self.poll_command_request()
                 
                 #
@@ -324,10 +336,10 @@ class _Beacon(threading.Thread):
                 #
                 # If we're processing a command, see if it's complete
                 #
-                if self._command_request is not Empty:
+                if self._command:
                     self.process_command()
                     self.poll_command_reponse()
-            
+
             except:
                 _logger.exception("Problem in beacon thread")
                 break
