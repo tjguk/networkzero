@@ -30,7 +30,7 @@ def wait_for_message(address, wait_for_s=config.FOREVER, autoreply=False):
     """
     _logger.debug("Waiting for message on %s for %s secs", address, wait_for_s)
     message = sockets._sockets.wait_for_message(address, wait_for_s)
-    if autoreply:
+    if autoreply and message is not None:
         send_reply(address, None)
     return message
 
