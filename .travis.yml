@@ -7,5 +7,5 @@ python:
 # install dependencies
 install:
     - pip install tox tox-travis
-# run tests
+# run test command
 script: tox
