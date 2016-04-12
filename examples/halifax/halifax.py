@@ -2,6 +2,7 @@ import random
 import time
 
 import zmq
+context = zmq.Context()
 
 import networkzero as nw0
 
@@ -24,9 +25,8 @@ while True:
     for n, (name, address) in enumerate(services):
         if name == my_name:
             left_name, left_address = services[n - 1]
-            right_name, right_address = services[(n + 1) % len(services)]
     
-    print("%s <-> %s" % (left_name, right_name))
+    print(left_name, left_address)
 
     time.sleep(1)
     if first_word:
@@ -34,7 +34,8 @@ while True:
         first_word = None
     else:
         print("Waiting for left neighbour")
-        with nw0.sockets.get_socket(left_address, zmq.REP) as socket:
+        with context.socket(zmq.REP) as socket:
+            socket.connect("tcp://%s" % left_address)
             word = socket.recv().decode("utf-8")
             socket.send(b"OK")
 
@@ -45,5 +46,6 @@ while True:
     print("Next word is", next_word)
 
     time.sleep(1)
-    with nw0.sockets.get_socket(my_address, zmq.REQ) as socket:
+    with context.socket(zmq.REQ) as socket:
+        socket.bind("tcp://%s" % my_address)
         ok = socket.send(next_word.encode("utf-8"))
