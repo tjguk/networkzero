@@ -1,15 +1,21 @@
 import networkzero as nw0
 
+print("Looking for chat hub")
 hub = nw0.discover("chat-hub")
-print("Hub found on", hub)
-updates = nw0.discover("chat-updates")
-print("Updates found on", updates)
+if not hub:
+    print("Unable to find chat hub after 60s")
+    raise SystemExit
+
+print("Chat hub found at", hub)
 
 name = input("Name: ")
 nw0.send_message(hub, ["JOIN", name])
 try:
     while True:
-        message = input("Message: ")
+        try:
+            message = input("Message: ")
+        except KeyboardInterrupt:
+            message = None
         if not message:
             break
         nw0.send_message(hub, ["SPEAK", (name, message)])

@@ -5,12 +5,8 @@ import time
 
 import networkzero as nw0
 
-quotes = [
-    "Humpty Dumpty sat on a wall",
-    "Hickory Dickory Dock",
-    "Baa Baa Black Sheep",
-    "Old King Cole was a merry old sould",
-]
+with open("quotes.txt") as f:
+    quotes = [line.strip() for line in f]
 
 def main(address_pattern=None):
     my_name = input("Name: ")

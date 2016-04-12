@@ -21,10 +21,6 @@ MESSAGE_SIZE = 256
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 s.bind(("192.168.31.2", PORT))
-#
-# Add the raw UDP socket to a ZeroMQ socket poller so we can check whether
-# it's received anything as part of the beacon's main event loop.
-#
 
 print("Listening...")
 while True:
