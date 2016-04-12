@@ -28,7 +28,6 @@ while True:
     
     print(left_name, left_address)
 
-    time.sleep(1)
     if first_word:
         word = first_word
         first_word = None
@@ -45,7 +44,6 @@ while True:
     next_word = candidate_words.pop()
     print("Next word is", next_word)
 
-    time.sleep(1)
     with context.socket(zmq.REQ) as socket:
         socket.bind("tcp://%s" % my_address)
         ok = socket.send(next_word.encode("utf-8"))
