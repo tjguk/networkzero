@@ -114,7 +114,6 @@ def check_log(logger, pattern):
 #
 # send_message
 #
-#~ @pytest.mark.skipif(sys.version_info[:2] == (2, 7), reason="stalls under 2.7")
 def test_send_message(support):
     address = nw0.core.address()
     message = uuid.uuid4().hex
