@@ -6,7 +6,6 @@ python:
   - "3.5"
 # install dependencies
 install:
-    - pip install pytest
-    - pip install tox
-# run tests
+    - pip install tox tox-travis
+# run test command
 script: tox
