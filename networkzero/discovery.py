@@ -433,7 +433,23 @@ def discover(name, wait_for_s=60):
     :returns: the address found or None
     """
     _start_beacon()
-    return _rpc("discover", name, wait_for_s)
+    #
+    # It's possible to enter a deadlock situation where the first
+    # process fires off a discovery request and waits for the
+    # second process to advertise. But the second process has to
+    # connect to the rpc port of the first process' beacon and
+    # its advertisement is queued behind the pending discovery.
+    #
+    # To give both a chance of succeeding we operate in bursts,
+    # allowing them to interleave.
+    #
+    t0 = time.time()
+    while True:
+        discovery = _rpc("discover", name, 0.5)
+        if discovery:
+            return discovery
+        if timed_out(t0, wait_for_s):
+            return None
 
 def discover_all():
     """Produce a list of all known services and their addresses
