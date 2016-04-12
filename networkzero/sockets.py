@@ -134,7 +134,7 @@ class Sockets:
         try:
             message = self._receive_with_timeout(socket, wait_for_s)
             return _unserialise(message)
-        except (core.SocketTimedOutError, core.SocketInterruptedError):
+        except (core.SocketTimedOutError):
             return None
         
     def send_message(self, address, request, wait_for_reply_s   ):
