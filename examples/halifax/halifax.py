@@ -1,5 +1,6 @@
 import random
 import time
+import uuid
 
 import zmq
 context = zmq.Context()
@@ -11,39 +12,42 @@ with open("words.txt") as f:
     for word in f:
         words.setdefault(word[0], []).append(word.strip())
 
-my_name = input("Name: ")
+my_name = uuid.uuid4().hex
 my_address = nw0.advertise(my_name)
 first_word = input("Word: ").strip()
 
+#
+# Wait 30 seconds to discover all neighbours
+#
+print("Waiting for neighbours to show up...")
+time.sleep(10)
+
+print("Looking for neighbours")
+addresses = [address for (name, address) in nw0.discover_all() if name != my_name]
+print(addresses)
+
+listening_socket = context.socket(zmq.REP)
+listening_socket.bind("tcp://%s" % my_address)
+
+sending_socket = context.socket(zmq.REQ)
+for address in addresses:
+    sending_socket.connect("tcp://%s" % address)
+
 while True:
     
-    services = sorted(nw0.discover_all())
-    if len(services) < 2:
-        continue
-    
-    print("Looking for neighbours")
-    for n, (name, address) in enumerate(services):
-        if name == my_name:
-            left_name, left_address = services[n - 1]
-    
-    print(left_name, left_address)
-
     if first_word:
         word = first_word
         first_word = None
     else:
-        print("Waiting for left neighbour")
-        with context.socket(zmq.REP) as socket:
-            socket.connect("tcp://%s" % left_address)
-            word = socket.recv().decode("utf-8")
-            socket.send(b"OK")
+        print("Waiting for next word...")
+        word = listening_socket.recv().decode("utf-8")
+        listening_socket.send(word.encode("utf-8"))
 
     print("Got word", word)
     candidate_words = words[word[-1]]
     random.shuffle(candidate_words)
     next_word = candidate_words.pop()
-    print("Next word is", next_word)
-
-    with context.socket(zmq.REQ) as socket:
-        socket.bind("tcp://%s" % my_address)
-        ok = socket.send(next_word.encode("utf-8"))
+    
+    print("Sending word", next_word)
+    sending_socket.send(next_word.encode("utf-8"))
+    sending_socket.recv().decode("utf-8")
