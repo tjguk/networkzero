@@ -1,6 +1,9 @@
 NetworkZero
 ===========
 
+.. image:: https://travis-ci.org/tjguk/networkzero.svg?branch=master
+    :target: https://travis-ci.org/tjguk/networkzero
+
 Make it easy for learning groups to use simple networking in Python
 
 ..  note::
