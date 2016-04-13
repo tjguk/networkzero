@@ -10,7 +10,7 @@ _logger = core.get_logger(__name__)
 def send_message(address, message, wait_for_reply_s=config.FOREVER):
     """Send a message and return the reply
     
-    :param address: a nw0 address (eg from `nw0.discover`)
+    :param address: a nw0 address (eg from `nw0.discover`) or a list of addresses
     :param message: any simple Python object, including text & tuples
     :param wait_for_reply_s: how many seconds to wait for a reply before giving up
     
@@ -56,7 +56,7 @@ def send_notification(address, topic, data=None):
 def wait_for_notification(address, prefix=config.EVERYTHING, wait_for_s=config.FOREVER):
     """Wait for notification whose topic starts with `prefix`.
     
-    :param address: a nw0 address, eg from `nw0.discover`
+    :param address: a nw0 address, eg from `nw0.discover` or a list of addresses
     :param prefix: any text object
     :param wait_for_s: how many seconds to wait before giving up
     

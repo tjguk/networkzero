@@ -106,3 +106,14 @@ def test_discover_before_advertise(beacon, support):
     support.queue.put(("discover_before_advertise", [service1]))
     address1 = nw0.discover(service1, wait_for_s=5)
     assert address1 is not None
+
+def test_discover_group(beacon):
+    group = uuid.uuid4().hex
+    service1 = "%s/%s" % (group, uuid.uuid4().hex)
+    service2 = "%s/%s" % (group, uuid.uuid4().hex)
+    service3 = "%s/%s" % (uuid.uuid4().hex, uuid.uuid4().hex)
+    address1 = nw0.advertise(service1)
+    address2 = nw0.advertise(service2)
+    address3 = nw0.advertise(service3)
+    discovered_group = nw0.discover_group(group)
+    assert set(discovered_group) == set([(service1, address1), (service2, address2)])
