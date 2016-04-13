@@ -1,6 +1,7 @@
 import sys
 import random
 import time
+import traceback
 import uuid
 
 import zmq
@@ -37,25 +38,26 @@ sending_socket = context.socket(zmq.REQ)
 for address in addresses:
     sending_socket.connect("tcp://%s" % address)
 
-while True:
-    
-    if first_word:
-        word = first_word
-        first_word = None
-    else:
-        print("Waiting for next word...")
-        word = listening_socket.recv().decode("utf-8")
-        listening_socket.send(word.encode("utf-8"))
+try:
+    while True:
+        
+        if first_word:
+            word = first_word
+            first_word = None
+        else:
+            print("Waiting for next word...")
+            word = listening_socket.recv().decode("utf-8")
+            listening_socket.send(word.encode("utf-8"))
 
-    print("Got word", word)
-    candidate_words = words[word[-1]]
-    random.shuffle(candidate_words)
-    next_word = candidate_words.pop()
+        print("Got word", word)
+        candidate_words = words[word[-1]]
+        random.shuffle(candidate_words)
+        next_word = candidate_words.pop()
+        
+        print("Sending word", next_word)
+        sending_socket.send(next_word.encode("utf-8"))
+        sending_socket.recv().decode("utf-8")
+except:
+    traceback.print_exc()
+    input("Press enter...")
     
-    print("Sending word", next_word)
-    sending_socket.send(next_word.encode("utf-8"))
-    sending_socket.recv().decode("utf-8")
-    #
-    # Attempt to force another node into play
-    #
-    time.sleep(0.2)
