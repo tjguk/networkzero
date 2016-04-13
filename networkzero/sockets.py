@@ -39,6 +39,7 @@ class Socket(zmq.Socket):
         self.__dict__['_address'] = address
         if self.type in (zmq.REQ, zmq.SUB):
             for a in address:
+                _logger.debug("About to connect to %s", a)
                 self.connect("tcp://%s" % a)
         elif self.type in (zmq.REP, zmq.PUB):
             self.bind("tcp://%s" % address)
@@ -82,9 +83,7 @@ class Sockets:
             caddress = tuple(core.address(a) for a in address)
         else:
             caddress = core.address(address)
-        _logger.debug("socket address will be %s", caddress)
         if (caddress, type) not in self._sockets:
-            _logger.debug("Socket not found; creating new")
             socket = context.socket(type)
             socket.address = caddress
             #
@@ -92,8 +91,6 @@ class Sockets:
             # in the socket not being cached
             #
             self._sockets[(caddress, type)] = socket
-        else:
-            _logger.debug("Existing socket found")
         return self._sockets[(caddress, type)]
     
     def intervals_ms(self, timeout_ms):
@@ -168,7 +165,11 @@ class Sockets:
         return socket.send_multipart(_serialise_for_pubsub(topic, data))
     
     def wait_for_notification(self, address, topic, wait_for_s):
-        socket = self.get_socket(address, zmq.SUB)
+        if isinstance(address, list):
+            addresses = address
+        else:
+            addresses = [address]
+        socket = self.get_socket(addresses, zmq.SUB)
         if isinstance(topic, str):
             topics = [topic]
         else:

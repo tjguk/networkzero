@@ -96,14 +96,11 @@ class SupportThread(threading.Thread):
         socket1 = self.context.socket(zmq.REP)
         socket2 = self.context.socket(zmq.REP)
         try:
-            _logger.debug("About to bind %s and %s", address1, address2)
             socket1.bind("tcp://%s" % address1)
             socket2.bind("tcp://%s" % address2)
             poller.register(socket1, zmq.POLLIN)
             poller.register(socket2, zmq.POLLIN)
-            _logger.debug("About to poll")
             polled = dict(poller.poll(2000))
-            _logger.debug("Polled: %s", polled)
             if socket1 in polled:
                 socket1.recv()
                 socket1.send(nw0.sockets._serialise(address1))
@@ -112,6 +109,28 @@ class SupportThread(threading.Thread):
                 socket2.send(nw0.sockets._serialise(address2))
             else:
                 raise RuntimeError("Nothing found")
+        finally:
+            socket1.close()
+            socket2.close()
+
+    def support_test_wait_for_notification_from_multiple_addresses(self, address1, address2, topic, data, sync_queue):
+        socket1 = self.context.socket(zmq.PUB)
+        socket2 = self.context.socket(zmq.PUB)
+        try:
+            socket1.bind("tcp://%s" % address1)
+            socket2.bind("tcp://%s" % address2)
+            while True:
+                socket1.send_multipart(nw0.sockets._serialise_for_pubsub(topic, None))
+                try:
+                    sync = sync_queue.get_nowait()
+                except queue.Empty:
+                    time.sleep(0.1)
+                else:
+                    break
+            socket1.send_multipart(nw0.sockets._serialise_for_pubsub(topic, data))
+
+            sync = sync_queue.get()
+            socket2.send_multipart(nw0.sockets._serialise_for_pubsub(topic, data))
         finally:
             socket1.close()
             socket2.close()
@@ -219,7 +238,7 @@ def test_wait_for_notification(support):
     assert (topic, data) == (in_topic, in_data)
 
 #
-# send_message
+# send to multiple addresses
 #
 def test_send_to_multiple_addresses(support):
     address1 = nw0.core.address()
@@ -228,5 +247,28 @@ def test_send_to_multiple_addresses(support):
     support.queue.put(("send_to_multiple_addresses", [address1, address2]))
     reply = nw0.send_message([address1, address2], message, 3)
     assert reply == address1
+    support.queue.put(("send_to_multiple_addresses", [address1, address2]))
     reply = nw0.send_message([address1, address2], message, 3)
     assert reply == address2
+
+#
+# Wait for notifications from multiple addresses
+#
+def test_wait_for_notification_from_multiple_addresses(support):
+    address1 = nw0.core.address()
+    address2 = nw0.core.address()
+    topic = uuid.uuid4().hex
+    data = uuid.uuid4().hex
+    sync_queue = queue.Queue()
+    
+    support.queue.put(("wait_for_notification_from_multiple_addresses", [address1, address2, topic, data, sync_queue]))
+    in_topic, in_data = nw0.wait_for_notification([address1, address2], topic, wait_for_s=5)    
+    
+    sync_queue.put(True)
+    while in_data is None:
+        in_topic, in_data = nw0.wait_for_notification([address1, address2], topic, wait_for_s=5)
+    assert (topic, data) == (in_topic, in_data)
+    
+    support.queue.put(("wait_for_notification_from_multiple_addresses", [address1, address2, topic, data, sync_queue]))
+    in_topic, in_data = nw0.wait_for_notification([address1, address2], topic, wait_for_s=5)
+    
