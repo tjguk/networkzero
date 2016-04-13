@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 import time
+try:
+    unicode
+except NameError:
+    unicode = str
 
 import zmq
 
@@ -33,11 +37,11 @@ class Socket(zmq.Socket):
         return self._address
     def _set_address(self, address):
         self.__dict__['_address'] = address
-        tcp_address = "tcp://%s" % address
         if self.type in (zmq.REQ, zmq.SUB):
-            self.connect(tcp_address)
+            for a in address:
+                self.connect("tcp://%s" % a)
         elif self.type in (zmq.REP, zmq.PUB):
-            self.bind(tcp_address)
+            self.bind("tcp://%s" % address)
         #
         # ZeroMQ has a well-documented feature whereby the
         # newly-added subscriber will always miss the first
@@ -74,8 +78,13 @@ class Sockets:
         to the address. Address (ip:port) must be fully specified at this
         point. core.address can be used to generate an address.
         """
-        caddress = core.address(address)
+        if isinstance(address, list):
+            caddress = tuple(core.address(a) for a in address)
+        else:
+            caddress = core.address(address)
+        _logger.debug("socket address will be %s", caddress)
         if (caddress, type) not in self._sockets:
+            _logger.debug("Socket not found; creating new")
             socket = context.socket(type)
             socket.address = caddress
             #
@@ -83,6 +92,8 @@ class Sockets:
             # in the socket not being cached
             #
             self._sockets[(caddress, type)] = socket
+        else:
+            _logger.debug("Existing socket found")
         return self._sockets[(caddress, type)]
     
     def intervals_ms(self, timeout_ms):
@@ -137,8 +148,12 @@ class Sockets:
         except (core.SocketTimedOutError):
             return None
         
-    def send_message(self, address, request, wait_for_reply_s   ):
-        socket = self.get_socket(address, zmq.REQ)
+    def send_message(self, address, request, wait_for_reply_s):
+        if isinstance(address, list):
+            addresses = address
+        else:
+            addresses = [address]
+        socket = self.get_socket(addresses, zmq.REQ)
         serialised_request = _serialise(request)
         socket.send(serialised_request)
         return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))

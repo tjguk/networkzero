@@ -90,6 +90,32 @@ class SupportThread(threading.Thread):
                 
             socket.send_multipart(nw0.sockets._serialise_for_pubsub(topic, data))
 
+    def support_test_send_to_multiple_addresses(self, address1, address2):
+        poller = zmq.Poller()
+
+        socket1 = self.context.socket(zmq.REP)
+        socket2 = self.context.socket(zmq.REP)
+        try:
+            _logger.debug("About to bind %s and %s", address1, address2)
+            socket1.bind("tcp://%s" % address1)
+            socket2.bind("tcp://%s" % address2)
+            poller.register(socket1, zmq.POLLIN)
+            poller.register(socket2, zmq.POLLIN)
+            _logger.debug("About to poll")
+            polled = dict(poller.poll(2000))
+            _logger.debug("Polled: %s", polled)
+            if socket1 in polled:
+                socket1.recv()
+                socket1.send(nw0.sockets._serialise(address1))
+            elif socket2 in polled:
+                socket2.recv()
+                socket2.send(nw0.sockets._serialise(address2))
+            else:
+                raise RuntimeError("Nothing found")
+        finally:
+            socket1.close()
+            socket2.close()
+
 @pytest.fixture
 def support(request):
     thread = SupportThread(nw0.sockets.context)
@@ -191,3 +217,16 @@ def test_wait_for_notification(support):
     while in_data is None:
         in_topic, in_data = nw0.wait_for_notification(address, topic, wait_for_s=5)
     assert (topic, data) == (in_topic, in_data)
+
+#
+# send_message
+#
+def test_send_to_multiple_addresses(support):
+    address1 = nw0.core.address()
+    address2 = nw0.core.address()
+    message = uuid.uuid4().hex
+    support.queue.put(("send_to_multiple_addresses", [address1, address2]))
+    reply = nw0.send_message([address1, address2], message, 3)
+    assert reply == address1
+    reply = nw0.send_message([address1, address2], message, 3)
+    assert reply == address2
