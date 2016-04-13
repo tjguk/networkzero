@@ -1,3 +1,4 @@
+import sys
 import random
 import time
 import uuid
@@ -14,7 +15,10 @@ with open("words.txt") as f:
 
 my_name = uuid.uuid4().hex
 my_address = nw0.advertise(my_name)
-first_word = input("Word: ").strip()
+if len(sys.argv) == 2:
+    first_word = sys.argv[1].lower().strip()
+else:
+    first_word = ''
 
 #
 # Wait 30 seconds to discover all neighbours
@@ -51,3 +55,7 @@ while True:
     print("Sending word", next_word)
     sending_socket.send(next_word.encode("utf-8"))
     sending_socket.recv().decode("utf-8")
+    #
+    # Attempt to force another node into play
+    #
+    time.sleep(0.2)
