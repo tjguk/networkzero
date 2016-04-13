@@ -464,6 +464,26 @@ def discover_all():
     _start_beacon()
     return _rpc("discover_all")
 
+def discover_group(group):
+    """Produce a list of all services and their addresses in a group
+    
+    A group is an optional form of namespace within the discovery mechanism.
+    If an advertised name has the form <group>/<name> it is deemed to
+    belong to <group>. Note that the service's name is still the full
+    string <group>/<name>. The group concept is simply for discovery and
+    to assist differentiation, eg, in a classroom group.
+    
+    :param group: the name of a group prefix
+    
+    :returns: a list of 2-tuples [(name, address), ...]
+    """
+    _start_beacon
+    all_discovered = _rpc("discover_all")
+    return [(name, address) 
+        for (name, address) in all_discovered 
+        if name.startswith("%s/" % group)
+    ]
+
 def reset_beacon():
     """Clear the adverts which the beacon is carrying
     

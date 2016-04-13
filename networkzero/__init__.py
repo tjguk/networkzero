@@ -56,7 +56,7 @@ from .core import (
     SocketInterruptedError,
     address, action_and_params
 )
-from .discovery import advertise, discover, discover_all
+from .discovery import advertise, discover, discover_all, discover_group
 from .messenger import (
     send_message, wait_for_message, send_reply, 
     send_notification, wait_for_notification
