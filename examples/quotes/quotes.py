@@ -14,15 +14,15 @@ def main(address_pattern=None):
     print("Advertising %s on %s" % (my_name, my_address))
 
     while True:
-        services = [(name, address) for (name, address) in nw0.discover_all() if name != my_name]
+        services = [address for (name, address) in nw0.discover_all() if name != my_name]
 
-        for name, address in services:
-            topic, message = nw0.wait_for_notification(address, "quote", wait_for_s=0)
-            if topic:
-                print("%s says: %s" % (name, message))
+        topic, message = nw0.wait_for_notification(services, "quote", wait_for_s=0)
+        if topic:
+            incoming_name, incoming_quote = message
+            print("%s says: %s" % (incoming_name, incoming_quote))
         
         quote = random.choice(quotes)
-        nw0.send_notification(my_address, "quote", quote)
+        nw0.send_notification(my_address, "quote", (my_name, quote))
         
         time.sleep(1)
 
