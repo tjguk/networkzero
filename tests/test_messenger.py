@@ -128,8 +128,6 @@ class SupportThread(threading.Thread):
                 else:
                     break
             socket1.send_multipart(nw0.sockets._serialise_for_pubsub(topic, data))
-
-            sync = sync_queue.get()
             socket2.send_multipart(nw0.sockets._serialise_for_pubsub(topic, data))
         finally:
             socket1.close()
@@ -262,13 +260,11 @@ def test_wait_for_notification_from_multiple_addresses(support):
     sync_queue = queue.Queue()
     
     support.queue.put(("wait_for_notification_from_multiple_addresses", [address1, address2, topic, data, sync_queue]))
-    in_topic, in_data = nw0.wait_for_notification([address1, address2], topic, wait_for_s=5)    
     
+    in_topic, in_data = nw0.wait_for_notification([address1, address2], topic, wait_for_s=5)        
     sync_queue.put(True)
     while in_data is None:
         in_topic, in_data = nw0.wait_for_notification([address1, address2], topic, wait_for_s=5)
-    assert (topic, data) == (in_topic, in_data)
-    
-    support.queue.put(("wait_for_notification_from_multiple_addresses", [address1, address2, topic, data, sync_queue]))
+    assert (topic, data) == (in_topic, in_data)    
     in_topic, in_data = nw0.wait_for_notification([address1, address2], topic, wait_for_s=5)
-    
+    assert (topic, data) == (in_topic, in_data)    
