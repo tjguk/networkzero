@@ -15,7 +15,7 @@ Design Guidelines
 
 * As much as possible, code should work in the interactive interpreter
   
-* Thread-safety is not a priority
+* Thread-safety is not a priority [although see this issue https://github.com/tjguk/networkzero/issues/9]
   
 * Code will work unchanged on one box and on several.
 
