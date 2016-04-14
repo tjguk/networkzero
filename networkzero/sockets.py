@@ -76,7 +76,7 @@ context = Context()
 class Sockets:
 
     try_length_ms = 500 # wait for .5 second at a time
-    role_types = {
+    roles = {
         "listener" : zmq.DEALER,
         "speaker" : zmq.DEALER,
         "publisher" : zmq.PUB,
@@ -97,7 +97,7 @@ class Sockets:
             caddress = core.address(address)
         identifier = (caddress, role)
         if identifier not in self._sockets:
-            type = self.role_types[role]
+            type = self.roles[role]
             socket = context.socket(type)
             socket.role = role
             socket.address = caddress
