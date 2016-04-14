@@ -35,7 +35,7 @@ while True:
         first_word = None
     else:
         print("Waiting for next word...")
-        word = nw0.wait_for_message(my_address, autoreply=True)
+        word = nw0.wait_for_message(my_address)
 
     print("Got word", word)
     candidate_words = words[word[-1]]
