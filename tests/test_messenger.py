@@ -18,6 +18,8 @@ import networkzero as nw0
 _logger = nw0.core.get_logger("networkzero.tests")
 nw0.core._enable_debug_logging()
 
+roles = nw0.sockets.Sockets.roles
+
 class SupportThread(threading.Thread):
     """Fake the other end of the message/command/notification chain
     
@@ -46,13 +48,13 @@ class SupportThread(threading.Thread):
             _logger.exception("Problem in thread")
 
     def support_test_send_message(self, address):
-        with self.context.socket(zmq.REP) as socket:
+        with self.context.socket(roles['listener']) as socket:
             socket.bind("tcp://%s" % address)
             message = nw0.sockets._unserialise(socket.recv())
             socket.send(nw0.sockets._serialise(message))
 
     def support_test_wait_for_message(self, address, message):
-        with self.context.socket(zmq.REQ) as socket:
+        with self.context.socket(roles['speaker']) as socket:
             socket.connect("tcp://%s" % address)
             _logger.debug("About to send %s", message)
             socket.send(nw0.sockets._serialise(message))
@@ -60,14 +62,14 @@ class SupportThread(threading.Thread):
 
     def support_test_send_reply(self, address, queue):
         message = uuid.uuid4().hex
-        with self.context.socket(zmq.REQ) as socket:
+        with self.context.socket(roles['speaker']) as socket:
             socket.connect("tcp://%s" % address)
             socket.send(nw0.sockets._serialise(message))
             reply = nw0.sockets._unserialise(socket.recv())
         queue.put(reply)
 
     def support_test_send_notification(self, address, topic, queue):
-        with self.context.socket(zmq.SUB) as socket:
+        with self.context.socket(roles['subscriber']) as socket:
             socket.connect("tcp://%s" % address)
             socket.subscribe = topic.encode("utf-8")
             while True:
@@ -77,7 +79,7 @@ class SupportThread(threading.Thread):
                     break
 
     def support_test_wait_for_notification(self, address, topic, data, sync_queue):
-        with self.context.socket(zmq.PUB) as socket:
+        with self.context.socket(roles['publisher']) as socket:
             socket.bind("tcp://%s" % address)
             while True:
                 socket.send_multipart(nw0.sockets._serialise_for_pubsub(topic, None))
@@ -93,8 +95,8 @@ class SupportThread(threading.Thread):
     def support_test_send_to_multiple_addresses(self, address1, address2):
         poller = zmq.Poller()
 
-        socket1 = self.context.socket(zmq.REP)
-        socket2 = self.context.socket(zmq.REP)
+        socket1 = self.context.socket(roles['listener'])
+        socket2 = self.context.socket(roles['listener'])
         try:
             socket1.bind("tcp://%s" % address1)
             socket2.bind("tcp://%s" % address2)
@@ -114,8 +116,8 @@ class SupportThread(threading.Thread):
             socket2.close()
 
     def support_test_wait_for_notification_from_multiple_addresses(self, address1, address2, topic, data, sync_queue):
-        socket1 = self.context.socket(zmq.PUB)
-        socket2 = self.context.socket(zmq.PUB)
+        socket1 = self.context.socket(roles['publisher'])
+        socket2 = self.context.socket(roles['publisher'])
         try:
             socket1.bind("tcp://%s" % address1)
             socket2.bind("tcp://%s" % address2)

@@ -31,17 +31,17 @@ def _unserialise_for_pubsub(message_bytes):
 class Socket(zmq.Socket):
 
     def __repr__(self):
-        return "<Socket %x on %s>" % (id(self), getattr(self, "address", "<No address>"))
+        return "<%s socket %x on %s>" % (self.role, id(self), getattr(self, "address", "<No address>"))
 
     def _get_address(self):
         return self._address
     def _set_address(self, address):
         self.__dict__['_address'] = address
-        if self.type in (zmq.REQ, zmq.SUB):
+        if self.role in ("speaker", "subscriber"):
             for a in address:
                 _logger.debug("About to connect to %s", a)
                 self.connect("tcp://%s" % a)
-        elif self.type in (zmq.REP, zmq.PUB):
+        elif self.role in ("listener", "publisher"):
             self.bind("tcp://%s" % address)
         #
         # ZeroMQ has a well-documented feature whereby the
@@ -50,9 +50,15 @@ class Socket(zmq.Socket):
         # we hackily avoid this here by having each socket
         # wait a short while once it's bound/connected.
         #
-        if self.type in (zmq.SUB, zmq.PUB):
+        if self.role in ("publisher", "subscriber"):
             time.sleep(0.5)
     address = property(_get_address, _set_address)
+    
+    def _get_role(self):
+        return self._role
+    def _set_role(self, role):
+        self.__dict__['_role'] = role
+    role = property(_get_role, _set_role)
 
 class Context(zmq.Context):
     
@@ -70,11 +76,17 @@ context = Context()
 class Sockets:
 
     try_length_ms = 500 # wait for .5 second at a time
+    roles = {
+        "listener" : zmq.DEALER,
+        "speaker" : zmq.DEALER,
+        "publisher" : zmq.PUB,
+        "subscriber" : zmq.SUB
+    }
     
     def __init__(self):
         self._sockets = {}
     
-    def get_socket(self, address, type):
+    def get_socket(self, address, role):
         """Create or retrieve a socket of the right type, already connected
         to the address. Address (ip:port) must be fully specified at this
         point. core.address can be used to generate an address.
@@ -83,15 +95,18 @@ class Sockets:
             caddress = tuple(core.address(a) for a in address)
         else:
             caddress = core.address(address)
-        if (caddress, type) not in self._sockets:
+        identifier = (caddress, role)
+        if identifier not in self._sockets:
+            type = self.roles[role]
             socket = context.socket(type)
+            socket.role = role
             socket.address = caddress
             #
             # Do this last so that an exception earlier will result
             # in the socket not being cached
             #
-            self._sockets[(caddress, type)] = socket
-        return self._sockets[(caddress, type)]
+            self._sockets[identifier] = socket
+        return self._sockets[identifier]
     
     def intervals_ms(self, timeout_ms):
         """Generate a series of interval lengths, in ms, which
@@ -138,7 +153,7 @@ class Sockets:
             raise core.SocketInterruptedError(ms_so_far / 1000.0)
 
     def wait_for_message(self, address, wait_for_s):
-        socket = self.get_socket(address, zmq.REP)
+        socket = self.get_socket(address, "listener")
         try:
             message = self._receive_with_timeout(socket, wait_for_s)
             return _unserialise(message)
@@ -150,18 +165,18 @@ class Sockets:
             addresses = address
         else:
             addresses = [address]
-        socket = self.get_socket(addresses, zmq.REQ)
+        socket = self.get_socket(addresses, "speaker")
         serialised_request = _serialise(request)
         socket.send(serialised_request)
         return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
     def send_reply(self, address, reply):
-        socket = self.get_socket(address, zmq.REP)
+        socket = self.get_socket(address, "listener")
         reply = _serialise(reply)
         return socket.send(reply)
     
     def send_notification(self, address, topic, data):
-        socket = self.get_socket(address, zmq.PUB)
+        socket = self.get_socket(address, "publisher")
         return socket.send_multipart(_serialise_for_pubsub(topic, data))
     
     def wait_for_notification(self, address, topic, wait_for_s):
@@ -169,7 +184,7 @@ class Sockets:
             addresses = address
         else:
             addresses = [address]
-        socket = self.get_socket(addresses, zmq.SUB)
+        socket = self.get_socket(addresses, "subscriber")
         if isinstance(topic, str):
             topics = [topic]
         else:
@@ -185,5 +200,5 @@ class Sockets:
 
 _sockets = Sockets()
 
-def get_socket(address, type):
-    return _sockets.get_socket(address, type)
+def get_socket(address, role):
+    return _sockets.get_socket(address, role)
