@@ -13,7 +13,7 @@ def test_import_all_relevant_names():
         "action_and_params", "address",
         "NetworkZeroError", "SocketAlreadyExistsError",
         "SocketTimedOutError", "InvalidAddressError",
-        "SocketInterruptedError"
+        "SocketInterruptedError", "DifferentThreadError",
     }
     #
     # Find all the names imported into the nw0 package except

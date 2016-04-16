@@ -75,6 +75,9 @@ class InvalidAddressError(NetworkZeroError):
             message += "; the system returned an error of %d" % self.errno
         return message
 
+class DifferentThreadError(NetworkZeroError):
+    pass
+
 #
 # Ports in the range 0xc000..0xffff are reserved
 # for dynamic allocation

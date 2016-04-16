@@ -53,7 +53,7 @@ To send notifications::
 from .core import (
     NetworkZeroError, SocketAlreadyExistsError, 
     SocketTimedOutError, InvalidAddressError,
-    SocketInterruptedError,
+    SocketInterruptedError, DifferentThreadError,
     address, action_and_params
 )
 from .discovery import advertise, discover, discover_all, discover_group

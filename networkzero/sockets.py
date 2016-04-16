@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import threading
 import time
 try:
     unicode
@@ -29,6 +30,13 @@ def _unserialise_for_pubsub(message_bytes):
     return topic_bytes.decode(config.ENCODING), _unserialise(data_bytes)
 
 class Socket(zmq.Socket):
+
+    def __init__(self, *args, **kwargs):
+        zmq.Socket.__init__(self, *args, **kwargs)
+        #
+        # Keep track of which thread this socket was created in
+        #
+        self.__dict__['_thread'] = threading.current_thread()
 
     def __repr__(self):
         return "<%s socket %x on %s>" % (self.role, id(self), getattr(self, "address", "<No address>"))
@@ -106,7 +114,16 @@ class Sockets:
             # in the socket not being cached
             #
             self._sockets[identifier] = socket
-        return self._sockets[identifier]
+        else:
+            #
+            # If we're picking up an existing socket, make sure we're
+            # in the same thread as the one it was created in
+            #
+            socket = self._sockets[identifier]
+            if threading.current_thread() != socket._thread:
+                raise core.DifferentThreadError("This socket was created in thread %s" % socket._thread)
+        
+        return socket
     
     def intervals_ms(self, timeout_ms):
         """Generate a series of interval lengths, in ms, which
