@@ -31,6 +31,8 @@ def _unserialise_for_pubsub(message_bytes):
 
 class Socket(zmq.Socket):
 
+    binding_roles = {"listener", "publisher"}
+    
     def __init__(self, *args, **kwargs):
         zmq.Socket.__init__(self, *args, **kwargs)
         #
@@ -45,12 +47,12 @@ class Socket(zmq.Socket):
         return self._address
     def _set_address(self, address):
         self.__dict__['_address'] = address
-        if self.role in ("speaker", "subscriber"):
+        if self.role in self.binding_roles:
+            self.bind("tcp://%s" % address)
+        else:
             for a in address:
                 _logger.debug("About to connect to %s", a)
                 self.connect("tcp://%s" % a)
-        elif self.role in ("listener", "publisher"):
-            self.bind("tcp://%s" % address)
         #
         # ZeroMQ has a well-documented feature whereby the
         # newly-added subscriber will always miss the first
@@ -156,7 +158,7 @@ class Sockets:
                         socket._thread, threading.current_thread()
                     )
                 )
-        
+
         return socket
     
     def intervals_ms(self, timeout_ms):
