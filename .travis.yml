@@ -63,3 +63,8 @@ matrix:
 install: ./.travis/install.sh
 
 script: source ~/.venv/bin/activate && tox
+
+branches:
+  only:
+    - master
+    - dev
