@@ -464,7 +464,7 @@ def discover_all():
     _start_beacon()
     return _rpc("discover_all")
 
-def discover_group(group):
+def discover_group(group, exclude=None):
     """Produce a list of all services and their addresses in a group
     
     A group is an optional form of namespace within the discovery mechanism.
@@ -474,14 +474,20 @@ def discover_group(group):
     to assist differentiation, eg, in a classroom group.
     
     :param group: the name of a group prefix
+    :param exclude: an iterable of names to exclude (or None)
     
     :returns: a list of 2-tuples [(name, address), ...]
     """
-    _start_beacon
+    _start_beacon()
+    if exclude is None:
+        names_to_exclude = set()
+    else:
+        names_to_exclude = set(exclude)
     all_discovered = _rpc("discover_all")
     return [(name, address) 
         for (name, address) in all_discovered 
         if name.startswith("%s/" % group)
+        and name not in names_to_exclude
     ]
 
 def reset_beacon():

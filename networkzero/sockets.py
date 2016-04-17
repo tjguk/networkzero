@@ -85,8 +85,8 @@ class Sockets:
 
     try_length_ms = 500 # wait for .5 second at a time
     roles = {
-        "listener" : zmq.DEALER,
-        "speaker" : zmq.DEALER,
+        "listener" : zmq.REP,
+        "speaker" : zmq.REQ,
         "publisher" : zmq.PUB,
         "subscriber" : zmq.SUB
     }
