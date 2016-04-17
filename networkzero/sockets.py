@@ -92,19 +92,45 @@ class Sockets:
     }
     
     def __init__(self):
-        self._sockets = {}
+        self._tls = threading.local()
     
     def get_socket(self, address, role):
         """Create or retrieve a socket of the right type, already connected
         to the address. Address (ip:port) must be fully specified at this
         point. core.address can be used to generate an address.
         """
+        #
+        # If this thread doesn't yet have a sockets dictionary
+        # in its local storage, create one here.
+        #
+        try:
+            self._tls.sockets
+        except AttributeError:
+            self._tls.sockets = {}
+        
+        #
+        # If a list of addresses is passed, turn it into a tuple
+        # of canonical addresses for use as a dictionary key. 
+        # Otherwise convert it to a single canonical string.
+        #
         if isinstance(address, list):
             caddress = tuple(core.address(a) for a in address)
         else:
             caddress = core.address(address)
+        
+        #
+        # Each socket is identified for this thread by its address(es)
+        # and the role the socket is playing (listener, publisher, etc.)
+        # That is, within one thread, we are cacheing a read or a write
+        # socket to the same address(es).
+        #
+        # The slight corner case from this is that if you attempt to
+        # send to [addressA, addressB] and then to addressA and then
+        # to [addressB, addressA], three separate sockets will be
+        # created and used.
+        #
         identifier = (caddress, role)
-        if identifier not in self._sockets:
+        if identifier not in self._tls.sockets:
             type = self.roles[role]
             socket = context.socket(type)
             socket.role = role
@@ -113,15 +139,23 @@ class Sockets:
             # Do this last so that an exception earlier will result
             # in the socket not being cached
             #
-            self._sockets[identifier] = socket
+            self._tls.sockets[identifier] = socket
         else:
             #
             # If we're picking up an existing socket, make sure we're
             # in the same thread as the one it was created in
             #
-            socket = self._sockets[identifier]
+            socket = self._tls.sockets[identifier]
+            #
+            # We're using thread-local storage so this exception should
+            # never fire. But... belt and braces
+            #
             if threading.current_thread() != socket._thread:
-                raise core.DifferentThreadError("This socket was created in thread %s" % socket._thread)
+                raise core.DifferentThreadError(
+                    "This socket was created in thread %s but is being used in %s" % (
+                        socket._thread, threading.current_thread()
+                    )
+                )
         
         return socket
     
