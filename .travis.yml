@@ -67,4 +67,3 @@ script: source ~/.venv/bin/activate && tox
 branches:
   only:
     - master
-    - dev
