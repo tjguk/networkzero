@@ -156,6 +156,8 @@ class Sockets:
                 with self._lock:
                     if identifier in self._sockets:
                         raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
+                    else:
+                        self._sockets.add(identifier)
             
             type = self.roles[role]
             socket = context.socket(type)
@@ -166,8 +168,6 @@ class Sockets:
             # in the socket not being cached
             #
             self._tls.sockets[identifier] = socket
-            with self._lock:
-                self._sockets.add(identifier) 
         else:
             #
             # Only return sockets created in this thread

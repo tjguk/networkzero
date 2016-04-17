@@ -47,7 +47,7 @@ def support_test_connected_in_other_thread(address, q, event):
 
 def test_connected_in_other_thread():
     """If a sending socket is connected in a different thread, the socket returned
-    is a different socket from the equivalent one created in this thread.
+    should be different socket from the equivalent one created in this thread.
     """
     event = threading.Event()
     q = queue.Queue()
@@ -55,13 +55,8 @@ def test_connected_in_other_thread():
     t = threading.Thread(target=support_test_connected_in_other_thread, args=(address, q, event))
     t.setDaemon(True)
     t.start()
-    _logger.debug("other thread started")
     socket_from_other_thread = q.get()
-    _logger.debug("other socket: %s", socket_from_other_thread)
     socket_from_this_thread = nw0.sockets.get_socket(address, "speaker")
-    _logger.debug("this socket: %s", socket_from_this_thread)
     assert socket_from_other_thread is not socket_from_this_thread
     event.set()
-    _logger.debug("Event is set")
     t.join()
-    _logger.debug("thread is joined")
