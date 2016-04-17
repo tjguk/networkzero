@@ -3,9 +3,9 @@ import json
 import threading
 import time
 try:
-    unicode
+    string = unicode
 except NameError:
-    unicode = str
+    string = str
 
 import zmq
 
@@ -46,13 +46,22 @@ class Socket(zmq.Socket):
     def _get_address(self):
         return self._address
     def _set_address(self, address):
-        self.__dict__['_address'] = address
+        _logger.debug("About to set address: %s", address)
         if self.role in self.binding_roles:
-            self.bind("tcp://%s" % address)
+            if isinstance(address, string):
+                self.bind("tcp://%s" % address)
+            else:
+                raise core.InvalidAddressError("A listening socket can be bound to only on address, not: %s" % address)
         else:
-            for a in address:
+            if isinstance(address, string):
+                addresses = [address]
+            else:
+                addresses = list(address)
+            for a in addresses:
                 _logger.debug("About to connect to %s", a)
                 self.connect("tcp://%s" % a)
+ 
+        self.__dict__['_address'] = address
         #
         # ZeroMQ has a well-documented feature whereby the
         # newly-added subscriber will always miss the first
@@ -95,6 +104,9 @@ class Sockets:
     
     def __init__(self):
         self._tls = threading.local()
+        self._lock = threading.Lock()
+        with self._lock:
+            self._sockets = set()
     
     def get_socket(self, address, role):
         """Create or retrieve a socket of the right type, already connected
@@ -119,7 +131,7 @@ class Sockets:
             caddress = tuple(core.address(a) for a in address)
         else:
             caddress = core.address(address)
-        
+            
         #
         # Each socket is identified for this thread by its address(es)
         # and the role the socket is playing (listener, publisher, etc.)
@@ -132,7 +144,19 @@ class Sockets:
         # created and used.
         #
         identifier = (caddress, role)
+        
         if identifier not in self._tls.sockets:
+            #
+            # If this is a listening / subscribing socket, it can only
+            # be bound once, regardless of thread. Therefore keep a
+            # threads-global list of addresses used and make sure this
+            # one hasn't been used elsewhere.
+            #
+            if role in Socket.binding_roles:
+                with self._lock:
+                    if identifier in self._sockets:
+                        raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
+            
             type = self.roles[role]
             socket = context.socket(type)
             socket.role = role
@@ -142,22 +166,13 @@ class Sockets:
             # in the socket not being cached
             #
             self._tls.sockets[identifier] = socket
+            with self._lock:
+                self._sockets.add(identifier) 
         else:
             #
-            # If we're picking up an existing socket, make sure we're
-            # in the same thread as the one it was created in
+            # Only return sockets created in this thread
             #
             socket = self._tls.sockets[identifier]
-            #
-            # We're using thread-local storage so this exception should
-            # never fire. But... belt and braces
-            #
-            if threading.current_thread() != socket._thread:
-                raise core.DifferentThreadError(
-                    "This socket was created in thread %s but is being used in %s" % (
-                        socket._thread, threading.current_thread()
-                    )
-                )
 
         return socket
     
