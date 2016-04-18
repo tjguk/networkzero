@@ -157,7 +157,6 @@ class Sockets:
                 _logger.debug("Binding role %s", role)
                 with self._lock:
                     _logger.debug("Global sockets %s", self._sockets)
-                    raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
                     if identifier in self._sockets:
                         raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
                     else:
