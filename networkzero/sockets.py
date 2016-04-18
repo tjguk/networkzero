@@ -113,7 +113,6 @@ class Sockets:
         to the address. Address (ip:port) must be fully specified at this
         point. core.address can be used to generate an address.
         """
-        raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
         #
         # If this thread doesn't yet have a sockets dictionary
         # in its local storage, create one here.
@@ -123,6 +122,7 @@ class Sockets:
         except AttributeError:
             self._tls.sockets = {}
         
+        raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
         #
         # If a list of addresses is passed, turn it into a tuple
         # of canonical addresses for use as a dictionary key. 
