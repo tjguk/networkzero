@@ -53,10 +53,10 @@ class Socket(zmq.Socket):
             else:
                 self.bind("tcp://%s" % address)
         else:
-            if isinstance(address, string):
-                addresses = [address]
+            if isinstance(address, list):
+                addresses = address
             else:
-                addresses = list(address)
+                addresses = [address]
             for a in addresses:
                 _logger.debug("About to connect to %s", a)
                 self.connect("tcp://%s" % a)
