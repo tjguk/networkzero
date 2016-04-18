@@ -146,7 +146,6 @@ class Sockets:
         identifier = (caddress, role)
         
         if identifier not in self._tls.sockets:
-            raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
             _logger.debug("New identifier %s", identifier)
             #
             # If this is a listening / subscribing socket, it can only
@@ -155,6 +154,7 @@ class Sockets:
             # one hasn't been used elsewhere.
             #
             if role in Socket.binding_roles:
+                raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
                 _logger.debug("Binding role %s", role)
                 #~ with self._lock:
                 if True:
