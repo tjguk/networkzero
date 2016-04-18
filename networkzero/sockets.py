@@ -155,9 +155,11 @@ class Sockets:
             #
             if role in Socket.binding_roles:
                 _logger.debug("Binding role %s", role)
-                with self._lock:
+                #~ with self._lock:
+                if True:
                     _logger.debug("Global sockets %s", self._sockets)
                     if identifier in self._sockets:
+                        1 / 0
                         raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
                     else:
                         self._sockets.add(identifier)
