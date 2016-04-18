@@ -48,10 +48,10 @@ class Socket(zmq.Socket):
     def _set_address(self, address):
         _logger.debug("About to set address: %s", address)
         if self.role in self.binding_roles:
-            if isinstance(address, string):
-                self.bind("tcp://%s" % address)
+            if isinstance(address, list):
+                raise core.NetworkZeroError("A listening socket can be bound to only one address, not: %r" % address)
             else:
-                raise core.InvalidAddressError("A listening socket can be bound to only on address, not: %s" % address)
+                self.bind("tcp://%s" % address)
         else:
             if isinstance(address, string):
                 addresses = [address]
