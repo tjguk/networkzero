@@ -122,7 +122,6 @@ class Sockets:
         except AttributeError:
             self._tls.sockets = {}
         
-        raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
         #
         # If a list of addresses is passed, turn it into a tuple
         # of canonical addresses for use as a dictionary key. 
@@ -133,6 +132,7 @@ class Sockets:
         else:
             caddress = core.address(address)
             
+        raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
         #
         # Each socket is identified for this thread by its address(es)
         # and the role the socket is playing (listener, publisher, etc.)
