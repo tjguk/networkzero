@@ -113,6 +113,7 @@ class Sockets:
         to the address. Address (ip:port) must be fully specified at this
         point. core.address can be used to generate an address.
         """
+        raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")'
         #
         # If this thread doesn't yet have a sockets dictionary
         # in its local storage, create one here.
