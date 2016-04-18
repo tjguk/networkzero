@@ -132,7 +132,6 @@ class Sockets:
         else:
             caddress = core.address(address)
             
-        raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
         #
         # Each socket is identified for this thread by its address(es)
         # and the role the socket is playing (listener, publisher, etc.)
@@ -147,6 +146,7 @@ class Sockets:
         identifier = (caddress, role)
         
         if identifier not in self._tls.sockets:
+            raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
             _logger.debug("New identifier %s", identifier)
             #
             # If this is a listening / subscribing socket, it can only
