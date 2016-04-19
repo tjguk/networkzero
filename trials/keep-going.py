@@ -16,14 +16,17 @@ def do(finish_at, number=None):
     time.sleep(3)
     
     neighbours = [address for name, address in nw0.discover_group(group, exclude=[name])]
-    print("Neighbours:", neighbours)
 
     while True:
         if number is not None:
             nw0.send_message(collector, (name, number))
-            nw0.send_message(neighbours, number + 1)
-        number = nw0.wait_for_message(address, autoreply=True)
-        if number > finish_at:
+            if number < finish_at:
+                nw0.send_message(neighbours, number + 1)
+        #
+        # Wait up to three seconds for a number and then give up
+        #
+        number = nw0.wait_for_message(address, wait_for_s=3, autoreply=True)
+        if number is None:
             break
 
 def main(n_threads=4, finish_at=1000):
@@ -42,10 +45,6 @@ def main(n_threads=4, finish_at=1000):
         print(name, number)
         if number >= finish_at:
             break
-    
-    print("All numbers collected; joining threads")
-    for thread in threads:
-        thread.join()
 
 if __name__ == '__main__':
     main()
