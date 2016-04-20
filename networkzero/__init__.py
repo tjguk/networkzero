@@ -17,15 +17,15 @@ To send a message and wait for a reply::
 
     echo_address = nw0.advertise("echo")
     while True:
-        name = nw0.wait_for_message(echo_address)
-        nw0.send_reply(echo_address, "Hello " + name)
+        name = nw0.wait_for_message_on(echo_address)
+        nw0.send_reply_on(echo_address, "Hello " + name)
 
     [Computer 2]
     import networkzero as nw0
 
     echo_address = nw0.discover("echo")
-    print(nw0.send_message(echo_address, "Alice"))
-    print(nw0.send_message(echo_address, "Bob"))
+    print(nw0.send_message_to(echo_address, "Alice"))
+    print(nw0.send_message_to(echo_address, "Bob"))
 
 To send notifications::
 
@@ -37,14 +37,14 @@ To send notifications::
         #
         # ... do stuff
         #
-        nw0.send_notification(address, "data", ...)
+        nw0.send_notification_on(address, "data", ...)
 
     [Computer 2, 3, 4...]
     import networkzero as nw0
     
     logger = nw0.discover("data-logger")
     while True:
-        topic, data = nw0.wait_for_notification(address, topic)
+        topic, data = nw0.wait_for_notification_from(address, topic)
         #
         # ... write the data to a database etc.
         #
@@ -58,6 +58,6 @@ from .core import (
 )
 from .discovery import advertise, discover, discover_all, discover_group
 from .messenger import (
-    send_message, wait_for_message, send_reply, 
-    send_notification, wait_for_notification
+    send_message_to, wait_for_message_on, send_reply_on, 
+    send_notification_on, wait_for_notification_from
 )
