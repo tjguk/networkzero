@@ -224,7 +224,7 @@ class Sockets:
         except KeyboardInterrupt:
             raise core.SocketInterruptedError(ms_so_far / 1000.0)
 
-    def wait_for_message(self, address, wait_for_s):
+    def wait_for_message_on(self, address, wait_for_s):
         socket = self.get_socket(address, "listener")
         try:
             message = self._receive_with_timeout(socket, wait_for_s)
@@ -232,7 +232,7 @@ class Sockets:
         except (core.SocketTimedOutError):
             return None
         
-    def send_message(self, address, request, wait_for_reply_s):
+    def send_message_to(self, address, request, wait_for_reply_s):
         if isinstance(address, list):
             addresses = address
         else:
@@ -242,16 +242,16 @@ class Sockets:
         socket.send(serialised_request)
         return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
-    def send_reply(self, address, reply):
+    def send_reply_on(self, address, reply):
         socket = self.get_socket(address, "listener")
         reply = _serialise(reply)
         return socket.send(reply)
     
-    def send_notification(self, address, topic, data):
+    def send_notification_on(self, address, topic, data):
         socket = self.get_socket(address, "publisher")
         return socket.send_multipart(_serialise_for_pubsub(topic, data))
     
-    def wait_for_notification(self, address, topic, wait_for_s):
+    def wait_for_notification_from(self, address, topic, wait_for_s):
         if isinstance(address, list):
             addresses = address
         else:
