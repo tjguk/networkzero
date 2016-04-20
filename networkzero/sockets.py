@@ -96,8 +96,8 @@ class Sockets:
 
     try_length_ms = 500 # wait for .5 second at a time
     roles = {
-        "listener" : zmq.REP,
-        "speaker" : zmq.REQ,
+        "listener" : zmq.DEALER,
+        "speaker" : zmq.DEALER,
         "publisher" : zmq.PUB,
         "subscriber" : zmq.SUB
     }
@@ -240,7 +240,7 @@ class Sockets:
         socket = self.get_socket(addresses, "speaker")
         serialised_request = _serialise(request)
         socket.send(serialised_request)
-        return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
+        #~ return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
     def send_reply(self, address, reply):
         socket = self.get_socket(address, "listener")
