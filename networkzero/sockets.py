@@ -114,7 +114,7 @@ class Sockets:
         point. core.address can be used to generate an address.
         """
         #
-        # If this thread doesn't yet have a sockets dictionary
+        # If this thread doesn't yet have a sockets cache
         # in its local storage, create one here.
         #
         try:
@@ -146,7 +146,7 @@ class Sockets:
         identifier = (caddress, role)
         
         if identifier not in self._tls.sockets:
-            _logger.debug("New identifier %s", identifier)
+            _logger.debug("%s does not exist in local sockets", identifier)
             #
             # If this is a listening / subscribing socket, it can only
             # be bound once, regardless of thread. Therefore keep a
@@ -154,9 +154,7 @@ class Sockets:
             # one hasn't been used elsewhere.
             #
             if role in Socket.binding_roles:
-                _logger.debug("Binding role %s", role)
                 with self._lock:
-                    _logger.debug("Global sockets %s", self._sockets)
                     if identifier in self._sockets:
                         raise core.SocketAlreadyExistsError("You cannot create a listening socket in more than one thread")
                     else:
@@ -172,7 +170,7 @@ class Sockets:
             #
             self._tls.sockets[identifier] = socket
         else:
-            _logger.debug("Existing identifier %s", identifier)
+            _logger.debug("%s already not exist in local sockets", identifier)
             #
             # Only return sockets created in this thread
             #
@@ -228,25 +226,35 @@ class Sockets:
         socket = self.get_socket(address, "listener")
         try:
             message = self._receive_with_timeout(socket, wait_for_s)
-            return _unserialise(message)
         except (core.SocketTimedOutError):
             return None
+        else:
+            return _unserialise(message)
         
-    def send_message_to(self, address, request, wait_for_reply_s):
+    def send_message_to(self, address, message):
         if isinstance(address, list):
             addresses = address
         else:
             addresses = [address]
         socket = self.get_socket(addresses, "speaker")
-        serialised_request = _serialise(request)
-        socket.send(serialised_request)
-        #~ return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
+        serialised_message = _serialise(message)
+        socket.send(serialised_message)
 
     def send_reply_on(self, address, reply):
         socket = self.get_socket(address, "listener")
         reply = _serialise(reply)
         return socket.send(reply)
     
+    def wait_for_reply_from(self, address, wait_for_s):
+        socket = self.get_socket(address, "speaker")
+        try:
+            message = self._receive_with_timeout(socket, wait_for_s)
+        except (core.SocketTimedOutError):
+            return None
+        else:
+            _logger.debug("reply received: %s", messages)
+            return _unserialise(message)
+
     def send_notification_on(self, address, topic, data):
         socket = self.get_socket(address, "publisher")
         return socket.send_multipart(_serialise_for_pubsub(topic, data))

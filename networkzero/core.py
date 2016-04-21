@@ -119,11 +119,8 @@ def _find_ip4_addresses():
     if _ip4_addresses is None:
         _ip4_addresses = []
         for interface in netifaces.interfaces():
-            _logger.debug("Considering interface %s", interface)
             for info in netifaces.ifaddresses(interface).get(netifaces.AF_INET, []):
-                _logger.debug("Considering info %s", info)
                 if info['addr']:
-                    _logger.debug("Considering IP %s", info['addr'])
                     _ip4_addresses.append(info['addr'])
     
     return _ip4_addresses    
@@ -155,8 +152,6 @@ def _find_ip4(prefer=None):
             #
             return n + 1, octets
     
-    _logger.debug("Prefer %s", _prefer)
-
     ip4_addresses = _find_ip4_addresses()
     #
     # Pick an address allowing for user preference if stated
@@ -204,7 +199,6 @@ def address(address=None):
     # or at a port and leave the other one blank
     #
     host_or_ip, port = split_address(address)
-    _logger.debug("Candidate Host: %s, Port: %s", host_or_ip, port)
     
     #
     # If the port has been supplied, make sure it's numeric and that it's a valid
@@ -224,8 +218,6 @@ def address(address=None):
         random.shuffle(PORT_POOL)
         port = PORT_POOL.pop()
     
-    _logger.debug("Port: %s", port)
-
     #
     # The address part could be an IP address (optionally including
     # wildcards to indicate a preference) or a hostname or nothing. 
@@ -233,8 +225,6 @@ def address(address=None):
     # It it's nothing or a wildcard we query the system for a matching IP address.
     #
     if (not host_or_ip) or is_valid_ip(host_or_ip):
-        _logger.debug("%s is a valid IP or blank", host_or_ip)
-        
         #
         # If a specific IP address is given, use that.
         # If an IP pattern is given (ie something with a wildcard in it) treat
@@ -251,7 +241,6 @@ def address(address=None):
         # different requests can specify different wildcard preferences.
         #
         if not host_or_ip:
-            _logger.debug("IP is empty; query system for preference %s", prefer)
             if _ip4 and _prefer == prefer:
                 ip = _ip4
             else:
@@ -260,8 +249,6 @@ def address(address=None):
             ip = host_or_ip
 
     else:
-        _logger.debug("%s is not a valid IP; treating as hostname", host_or_ip)
-        
         #
         # Treat the string as a hostname and resolve to an IP4 address
         #
@@ -279,7 +266,6 @@ def address(address=None):
             if ip == "92.242.132.15":
                 raise InvalidAddressError(host_or_ip, 0)
     
-    _logger.debug("About to return %s:%s", ip, port)
     return "%s:%s" % (ip, port)
 
 def action_and_params(commandline):

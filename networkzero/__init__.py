@@ -54,10 +54,11 @@ from .core import (
     NetworkZeroError, SocketAlreadyExistsError, 
     SocketTimedOutError, InvalidAddressError,
     SocketInterruptedError, DifferentThreadError,
+    
     address, action_and_params
 )
 from .discovery import advertise, discover, discover_all, discover_group
 from .messenger import (
-    send_message_to, wait_for_message_on, send_reply_on, 
+    send_message_to, wait_for_message_on, send_reply_on, wait_for_reply_from,
     send_notification_on, wait_for_notification_from
 )
