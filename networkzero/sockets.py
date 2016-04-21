@@ -246,13 +246,16 @@ class Sockets:
         return socket.send(reply)
     
     def wait_for_reply_from(self, address, wait_for_s):
-        socket = self.get_socket(address, "speaker")
+        if isinstance(address, list):
+            addresses = address
+        else:
+            addresses = [address]
+        socket = self.get_socket(addresses, "speaker")
         try:
             message = self._receive_with_timeout(socket, wait_for_s)
         except (core.SocketTimedOutError):
             return None
         else:
-            _logger.debug("reply received: %s", messages)
             return _unserialise(message)
 
     def send_notification_on(self, address, topic, data):
