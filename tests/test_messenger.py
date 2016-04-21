@@ -47,11 +47,11 @@ class SupportThread(threading.Thread):
         except:
             _logger.exception("Problem in thread")
 
-    def support_test_send_message_to(self, address):
+    def support_test_send_message_to(self, address, q):
         with self.context.socket(roles['listener']) as socket:
             socket.bind("tcp://%s" % address)
             message = nw0.sockets._unserialise(socket.recv())
-            socket.send(nw0.sockets._serialise(message))
+            q.put(message)
 
     def support_test_wait_for_message_on(self, address, message):
         with self.context.socket(roles['speaker']) as socket:
@@ -92,7 +92,7 @@ class SupportThread(threading.Thread):
                 
             socket.send_multipart(nw0.sockets._serialise_for_pubsub(topic, data))
 
-    def support_test_send_to_multiple_addresses(self, address1, address2):
+    def support_test_send_to_multiple_addresses(self, address1, address2, q):
         poller = zmq.Poller()
 
         socket1 = self.context.socket(roles['listener'])
@@ -105,10 +105,12 @@ class SupportThread(threading.Thread):
             polled = dict(poller.poll(2000))
             if socket1 in polled:
                 socket1.recv()
-                socket1.send(nw0.sockets._serialise(address1))
+                q.put(address1)
+                #~ socket1.send(nw0.sockets._serialise(address1))
             elif socket2 in polled:
                 socket2.recv()
-                socket2.send(nw0.sockets._serialise(address2))
+                q.put(address2)
+                #~ socket2.send(nw0.sockets._serialise(address2))
             else:
                 raise RuntimeError("Nothing found")
         finally:
@@ -160,10 +162,12 @@ def check_log(logger, pattern):
 # send_message_to
 #
 def test_send_message_to(support):
+    q = queue.Queue()
     address = nw0.core.address()
     message = uuid.uuid4().hex
-    support.queue.put(("send_message_to", [address]))
-    reply = nw0.send_message_to(address, message)
+    support.queue.put(("send_message_to", [address, q]))
+    nw0.send_message_to(address, message)
+    reply = q.get()
     assert reply == message
 
 #
@@ -241,14 +245,17 @@ def test_wait_for_notification_from(support):
 # send to multiple addresses
 #
 def test_send_to_multiple_addresses(support):
+    q = queue.Queue()
     address1 = nw0.core.address()
     address2 = nw0.core.address()
     message = uuid.uuid4().hex
-    support.queue.put(("send_to_multiple_addresses", [address1, address2]))
+    support.queue.put(("send_to_multiple_addresses", [address1, address2, q]))
     nw0.send_message_to([address1, address2], message)
+    reply = q.get()
     assert reply == address1
-    support.queue.put(("send_to_multiple_addresses", [address1, address2]))
+    support.queue.put(("send_to_multiple_addresses", [address1, address2, q]))
     nw0.send_message_to([address1, address2], message)
+    reply = q.get()
     assert reply == address2
 
 #
