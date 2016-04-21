@@ -68,7 +68,7 @@ class SupportThread(threading.Thread):
             reply = nw0.sockets._unserialise(socket.recv())
         queue.put(reply)
 
-    def support_test_send_notification_on(self, address, topic, queue):
+    def support_test_send_notification_to(self, address, topic, queue):
         with self.context.socket(roles['subscriber']) as socket:
             socket.connect("tcp://%s" % address)
             socket.subscribe = topic.encode("utf-8")
@@ -156,17 +156,17 @@ def test_send_reply_on(support):
     assert reply == message_received
 
 #
-# send_notification_on
+# send_notification_to
 #
-def test_send_notification_on(support):
+def test_send_notification_to(support):
     address = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
     reply_queue = queue.Queue()
     
-    support.queue.put(("send_notification_on", [address, topic, reply_queue]))
+    support.queue.put(("send_notification_to", [address, topic, reply_queue]))
     while True:
-        nw0.send_notification_on(address, topic, None)
+        nw0.send_notification_to(address, topic, None)
         try:
             in_topic, in_data = reply_queue.get_nowait()
         except queue.Empty:
@@ -174,7 +174,7 @@ def test_send_notification_on(support):
         else:
             break
 
-    nw0.send_notification_on(address, topic, data)
+    nw0.send_notification_to(address, topic, data)
     while in_data is None:
         in_topic, in_data = reply_queue.get()
     

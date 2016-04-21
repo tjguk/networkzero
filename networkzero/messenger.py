@@ -27,7 +27,7 @@ def wait_for_message_from(address, wait_for_s=config.FOREVER):
     _logger.info("Waiting for message on %s for %s secs", address, wait_for_s)
     return sockets._sockets.wait_for_message_from(address, wait_for_s)
 
-def send_notification_on(address, topic, data=None):
+def send_notification_to(address, topic, data=None):
     """Publish a notification to all subscribers
     
     :param address: a nw0 address, eg from `nw0.advertise`
@@ -35,7 +35,7 @@ def send_notification_on(address, topic, data=None):
     :param data: any simple Python object including test & tuples
     """
     _logger.info("Publish topic %s with data %s to %s", topic, data, address)
-    return sockets._sockets.send_notification_on(address, topic, data)
+    return sockets._sockets.send_notification_to(address, topic, data)
 
 def wait_for_notification_from(address, prefix=config.EVERYTHING, wait_for_s=config.FOREVER):
     """Wait for notification whose topic starts with `prefix`.

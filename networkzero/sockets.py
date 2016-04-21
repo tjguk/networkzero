@@ -222,7 +222,7 @@ class Sockets:
         serialised_message = _serialise(message)
         socket.send(serialised_message)
 
-    def send_notification_on(self, address, topic, data):
+    def send_notification_to(self, address, topic, data):
         socket = self.get_socket(address, "publisher")
         return socket.send_multipart(_serialise_for_pubsub(topic, data))
     

@@ -14,7 +14,7 @@ The messenger module offers two ways to send and/or receive messages across
 the network:
 
     * Messages: :func:`send_message_to` / :func:`wait_for_message_from`
-    * Notifications: :func:`send_notification_on` / :func:`wait_for_notification_from`
+    * Notifications: :func:`send_notification_to` / :func:`wait_for_notification_from`
 
 Functions
 ---------
@@ -26,5 +26,5 @@ Sending Messages
 
 Sending Notifications
 ~~~~~~~~~~~~~~~~~~~~~
-..  autofunction:: send_notification_on
+..  autofunction:: send_notification_to
 ..  autofunction:: wait_for_notification_from

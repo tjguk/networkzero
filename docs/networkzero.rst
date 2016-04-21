@@ -24,8 +24,7 @@ Discovery
 
 Message-Sending
 ~~~~~~~~~~~~~~~
-..  autofunction:: send_message
-..  autofunction:: wait_for_message
-..  autofunction:: send_reply
-..  autofunction:: send_notification
-..  autofunction:: wait_for_notification
+..  autofunction:: send_message_to
+..  autofunction:: wait_for_message_from
+..  autofunction:: send_notification_to
+..  autofunction:: wait_for_notification_from
