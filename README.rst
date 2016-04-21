@@ -13,9 +13,21 @@ Make it easy for learning groups to use simple networking in Python
     and weeks. Please do take it for a spin, but don't base any long-term
     plans on the current API. TJG
 
+    **21st April 2016** Still a lot of development going on. APIs changing
+    and approaches shifting slightly. As before, please feel free to try
+    out but not stable yet. TJG
+
 * Docs: http://networkzero.readthedocs.org/en/latest/
 
 * Development: https://github.com/tjguk/networkzero
+
+* Rough roadmap:
+
+  * Stable 1.0 by 30th April
+  * Perhaps use in London Python Dojo May 5th
+  * Show to teachers at Twickenham coding evening 19th May
+
+* Tests: to run the tests, run tox
 
 At the time of writing, all 27 tests pass on:
 
@@ -23,8 +35,6 @@ At the time of writing, all 27 tests pass on:
 * Debian Jessie
 * Raspbian Jessie
 * Mac OS/X 10.11
-
-* Tests: to run the tests, run tox
 
 API
 ---
@@ -45,15 +55,17 @@ Discovery
 Messaging
 ~~~~~~~~~
 
-* send_message(address, question[, wait_for_response_secs=FOREVER])
+* send_message_to(address, message)
 
-* message = wait_for_message(address, [wait_for_secs=FOREVER])
+* message = wait_for_message_on(address, [wait_for_s=FOREVER])
 
-* send_reply(address, reply)
+* send_reply_on(address, reply)
 
-* send_notification(address, notification)
+* message = wait_for_reply_from(address, wait_for_s=FOREVER)
 
-* wait_for_notification(address[, pattern=EVERYTHING][, wait_for_secs=FOREVER])
+* send_notification_on(address, notification)
+
+* wait_for_notification+from(address[, pattern=EVERYTHING][, wait_for_s=FOREVER])
 
 Typical Usage
 -------------
@@ -64,16 +76,17 @@ On computer (or process) A::
     
     address = nw0.advertise("hello")
     while True:
-        name = nw0.wait_for_message(address)
-        nw0.send_reply(address, "Hello, %s" % name)
+        name = nw0.wait_for_message_on(address)
+        nw0.send_reply_on(address, "Hello, %s" % name)
         
 On computer (or process) B and C and D...::
 
     import networkzero as nw0
     
     hello = nw0.discover("hello")
-    reply = nw0.send_message(hello, "World")
+    nw0.send_message_to(hello, "World")
+    reply = nw0.wait_for_reply_from(hello)
     print(reply)
-    reply = nw0.send_message(hello, "Tim")
+    nw0.send_message_to(hello, "Tim")
+    reply = nw0.wait_for_reply_from(hello)
     print(reply)
-
