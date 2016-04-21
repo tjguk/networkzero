@@ -8,7 +8,7 @@ if not updates:
 
 print("Chat updates found at", updates)    
 while True:
-    action, message = nw0.wait_for_notification(updates)
+    action, message = nw0.wait_for_notification_from(updates)
     if action is None:
         break
     elif action == "JOIN":

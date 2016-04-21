@@ -9,7 +9,7 @@ if not hub:
 print("Chat hub found at", hub)
 
 name = input("Name: ")
-nw0.send_message(hub, ["JOIN", name])
+nw0.send_message_to(hub, ["JOIN", name])
 try:
     while True:
         try:
@@ -18,6 +18,6 @@ try:
             message = None
         if not message:
             break
-        nw0.send_message(hub, ["SPEAK", (name, message)])
+        nw0.send_message_to(hub, ["SPEAK", (name, message)])
 finally:
-    nw0.send_message(hub, ["LEAVE", name])
+    nw0.send_message_to(hub, ["LEAVE", name])
