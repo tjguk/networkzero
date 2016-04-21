@@ -57,11 +57,7 @@ Messaging
 
 * send_message_to(address, message)
 
-* message = wait_for_message_on(address, [wait_for_s=FOREVER])
-
-* send_reply_on(address, reply)
-
-* message = wait_for_reply_from(address, wait_for_s=FOREVER)
+* message = wait_for_message_from(address, [wait_for_s=FOREVER])
 
 * send_notification_on(address, notification)
 
@@ -80,8 +76,8 @@ On computer (or process) A::
     
     address = nw0.advertise("hello")
     while True:
-        name = nw0.wait_for_message_on(address)
-        nw0.send_reply_on(address, "Hello, %s" % name)
+        name = nw0.wait_for_message_from(address)
+        nw0.send_message_to(address, "Hello, %s" % name)
         
 On computer (or process) B and C and D...::
 
