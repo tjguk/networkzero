@@ -129,7 +129,7 @@ class Sockets:
         # to [addressB, addressA], three separate sockets will be
         # created and used.
         #
-        identifier = (caddress, role)
+        identifier = caddress
         
         if identifier not in self._tls.sockets:
             _logger.debug("%s does not exist in local sockets", identifier)
