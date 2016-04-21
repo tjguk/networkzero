@@ -70,6 +70,10 @@ Messaging
 Typical Usage
 -------------
 
+..  warning::
+
+    This API is *still* provisional. And it is changing by the day.
+    
 On computer (or process) A::
 
     import networkzero as nw0
