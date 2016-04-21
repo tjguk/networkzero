@@ -8,6 +8,10 @@ NetworkZero
     and weeks. Please do take it for a spin, but don't base any long-term
     plans on the current API. TJG
 
+    **21st April 2016** Still a lot of development going on. APIs changing
+    and approaches shifting slightly. As before, please feel free to try
+    out but not stable yet. TJG
+
 NetworkZero makes it easier to use Python to connect things together 
 across the. It's especially focused on the classroom 
 or club situation where short-lived programs need to discover 
@@ -38,16 +42,18 @@ Can you give me an example?
 
     address = nw0.advertise("hello")
     while True:
-        name = nw0.wait_for_message(address)
-        nw0.send_reply(address, "Hello " + name)
+        name = nw0.wait_for_message_from(address)
+        nw0.send_message_to_address("Hello " + name)
 
 [Machine or Process B and C and D ...]::
 
     import networkzero as nw0
     
     hello = nw0.discover("hello")
-    print(nw0.send_message("World!"))
-    print(nw0.send_message("Tim"))
+    nw0.send_message(hello, "World!")
+    print(nw0.wait_for_message_from(hello)
+    nw0.send_message(hello, "Tim")
+    print(nw0.wait_for_message_from(hello)
 
 This runs a service, advertised under the name "hello"
 which will send back "Hello <name>" whenever <name> is sent to it.

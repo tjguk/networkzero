@@ -29,7 +29,7 @@ Network Zero which depends on ZeroMQ and allows you to:
 
 * Discover services
 
-* Send / Acknowledge commands
+* Send / Reply 
 
 * Publish / Subscribe
 
