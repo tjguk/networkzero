@@ -159,7 +159,7 @@ def check_log(logger, pattern):
 #
 # send_message_to
 #
-def test_send_message(support):
+def test_send_message_to(support):
     address = nw0.core.address()
     message = uuid.uuid4().hex
     support.queue.put(("send_message_to", [address]))
@@ -170,7 +170,7 @@ def test_send_message(support):
 # wait_for_message_on
 #
 
-def test_wait_for_message(support):
+def test_wait_for_message_on(support):
     address = nw0.core.address()
     message_sent = uuid.uuid4().hex
     support.queue.put(("wait_for_message_on", [address, message_sent]))
@@ -186,7 +186,7 @@ def test_wait_for_message_with_timeout():
 #
 # send_reply_on
 #
-def test_send_reply(support):
+def test_send_reply_on(support):
     address = nw0.core.address()
     reply_queue = queue.Queue()
 
@@ -199,7 +199,7 @@ def test_send_reply(support):
 #
 # send_notification_on
 #
-def test_send_notification(support):
+def test_send_notification_on(support):
     address = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
@@ -224,7 +224,7 @@ def test_send_notification(support):
 #
 # wait_for_notification_from
 #
-def test_wait_for_notification(support):
+def test_wait_for_notification_from(support):
     address = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
@@ -245,10 +245,10 @@ def test_send_to_multiple_addresses(support):
     address2 = nw0.core.address()
     message = uuid.uuid4().hex
     support.queue.put(("send_to_multiple_addresses", [address1, address2]))
-    reply = nw0.send_message_to([address1, address2], message, 3)
+    nw0.send_message_to([address1, address2], message)
     assert reply == address1
     support.queue.put(("send_to_multiple_addresses", [address1, address2]))
-    reply = nw0.send_message_to([address1, address2], message, 3)
+    nw0.send_message_to([address1, address2], message)
     assert reply == address2
 
 #
