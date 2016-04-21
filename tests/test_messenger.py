@@ -53,7 +53,7 @@ class SupportThread(threading.Thread):
             message = nw0.sockets._unserialise(socket.recv())
             q.put(message)
 
-    def support_test_wait_for_message_on(self, address, message):
+    def support_test_wait_for_message_from(self, address, message):
         with self.context.socket(roles['speaker']) as socket:
             socket.connect("tcp://%s" % address)
             _logger.debug("About to send %s", message)
@@ -126,20 +126,20 @@ def test_send_message_to(support):
     assert reply == message
 
 #
-# wait_for_message_on
+# wait_for_message_from
 #
 
-def test_wait_for_message_on(support):
+def test_wait_for_message_from(support):
     address = nw0.core.address()
     message_sent = uuid.uuid4().hex
-    support.queue.put(("wait_for_message_on", [address, message_sent]))
-    message_received = nw0.wait_for_message_on(address, wait_for_s=5)
+    support.queue.put(("wait_for_message_from", [address, message_sent]))
+    message_received = nw0.wait_for_message_from(address, wait_for_s=5)
     assert message_received == message_sent
-    nw0.send_reply_on(address, message_received)
+    nw0.send_message_to(address, message_received)
 
 def test_wait_for_message_with_timeout():
     address = nw0.core.address()
-    message = nw0.wait_for_message_on(address, wait_for_s=0.1)
+    message = nw0.wait_for_message_from(address, wait_for_s=0.1)
     assert message is None
 
 #
@@ -150,8 +150,8 @@ def test_send_reply_on(support):
     reply_queue = queue.Queue()
 
     support.queue.put(("send_reply_on", [address, reply_queue]))
-    message_received = nw0.wait_for_message_on(address, wait_for_s=5)
-    nw0.send_reply_on(address, message_received)
+    message_received = nw0.wait_for_message_from(address, wait_for_s=5)
+    nw0.send_message_to(address, message_received)
     reply = reply_queue.get()
     assert reply == message_received
 

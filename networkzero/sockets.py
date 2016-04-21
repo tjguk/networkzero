@@ -208,7 +208,7 @@ class Sockets:
         except KeyboardInterrupt:
             raise core.SocketInterruptedError(ms_so_far / 1000.0)
 
-    def wait_for_message_on(self, address, wait_for_s):
+    def wait_for_message_from(self, address, wait_for_s):
         socket = self.get_socket(address, "listener")
         try:
             message = self._receive_with_timeout(socket, wait_for_s)
@@ -221,20 +221,6 @@ class Sockets:
         socket = self.get_socket(address, "speaker")
         serialised_message = _serialise(message)
         socket.send(serialised_message)
-
-    def send_reply_on(self, address, reply):
-        socket = self.get_socket(address, "listener")
-        reply = _serialise(reply)
-        return socket.send(reply)
-    
-    def wait_for_reply_from(self, address, wait_for_s):
-        socket = self.get_socket(address, "speaker")
-        try:
-            message = self._receive_with_timeout(socket, wait_for_s)
-        except (core.SocketTimedOutError):
-            return None
-        else:
-            return _unserialise(message)
 
     def send_notification_on(self, address, topic, data):
         socket = self.get_socket(address, "publisher")
