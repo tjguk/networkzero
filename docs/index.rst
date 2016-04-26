@@ -51,9 +51,9 @@ Can you give me an example?
     
     hello = nw0.discover("hello")
     nw0.send_message(hello, "World!")
-    print(nw0.wait_for_message_from(hello)
+    print(nw0.wait_for_message_from(hello))
     nw0.send_message(hello, "Tim")
-    print(nw0.wait_for_message_from(hello)
+    print(nw0.wait_for_message_from(hello))
 
 This runs a service, advertised under the name "hello"
 which will send back "Hello <name>" whenever <name> is sent to it.
