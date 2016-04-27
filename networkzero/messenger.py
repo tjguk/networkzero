@@ -5,16 +5,28 @@ from . import sockets
 
 _logger = core.get_logger(__name__)
 
-def send_message_to(address, message):
+def send_reply_to(address, reply):
+    """Reply to a message previously received
+    
+    :param address: a nw0 address (eg from `nw0.advertise`)
+    :param reply: any simple Python object, including text & tuples
+    """
+    _logger.debug("Sending reply %s to %s", reply, address)
+    return sockets._sockets.send_reply_to(address, reply)
+
+def send_message_to(address, message, wait_for_reply_s=config.FOREVER):
     """Send a message and return the reply
     
     :param address: a nw0 address (eg from `nw0.discover`)
     :param message: any simple Python object, including text & tuples
+    :param wait_for_reply_s: how many seconds to wait for a reply [Forever]
     
     :returns: the reply returned from the address or None if out of time
     """
     _logger.info("Sending message %s to %s", message, address)
-    return sockets._sockets.send_message_to(address, message)
+    if isinstance(address, list):
+        raise core.InvalidAddressError("Multiple addresses are not allowed")
+    return sockets._sockets.send_message_to(address, message, wait_for_reply_s)
 
 def wait_for_message_from(address, wait_for_s=config.FOREVER):
     """Wait for a message

@@ -8,7 +8,7 @@ nw0.core._enable_debug_logging()
 def test_import_all_relevant_names():
     all_names = {
         "advertise", "discover", "discover_all", "discover_group",
-        "send_message_to", "wait_for_message_from", 
+        "send_message_to", "wait_for_message_from", "send_reply_to", 
         "send_notification_to", "wait_for_notification_from",
         "action_and_params", "address",
         "NetworkZeroError", "SocketAlreadyExistsError",

@@ -48,10 +48,18 @@ class Socket(zmq.Socket):
     def _set_address(self, address):
         _logger.debug("About to set address: %s", address)
         if self.role in self.binding_roles:
-            self.bind("tcp://%s" % address)
+            if isinstance(address, (list, tuple)):
+                raise core.NetworkZeroError("A listening socket can be bound to only one address, not: %r" % address)
+            else:
+                self.bind("tcp://%s" % address)
         else:
-            _logger.debug("About to connect to %s", address)
-            self.connect("tcp://%s" % address)
+            if isinstance(address, (list, tuple)):
+                addresses = address
+            else:
+                addresses = [address]
+            for a in addresses:
+                _logger.debug("About to connect to %s", a)
+                self.connect("tcp://%s" % a)
  
         self.__dict__['_address'] = address
         #
@@ -88,8 +96,8 @@ class Sockets:
 
     try_length_ms = 500 # wait for .5 second at a time
     roles = {
-        "listener" : zmq.DEALER,
-        "speaker" : zmq.DEALER,
+        "listener" : zmq.REP,
+        "speaker" : zmq.REQ,
         "publisher" : zmq.PUB,
         "subscriber" : zmq.SUB
     }
@@ -116,7 +124,14 @@ class Sockets:
         
         # Convert the address to a single canonical string.
         #
-        caddress = core.address(address)
+        # If a list of addresses is passed, turn it into a tuple
+        # of canonical addresses for use as a dictionary key. 
+        # Otherwise convert it to a single canonical string.
+        #
+        if isinstance(address, list):
+            caddress = tuple(core.address(a) for a in address)
+        else:
+            caddress = core.address(address)
             
         #
         # Each socket is identified for this thread by its address(es)
@@ -217,17 +232,27 @@ class Sockets:
         else:
             return _unserialise(message)
         
-    def send_message_to(self, address, message):
+    def send_message_to(self, address, message, wait_for_reply_s):
         socket = self.get_socket(address, "speaker")
         serialised_message = _serialise(message)
         socket.send(serialised_message)
+        return _unserialise(self._receive_with_timeout(socket, wait_for_reply_s))
 
+    def send_reply_to(self, address, reply):
+        socket = self.get_socket(address, "listener")
+        reply = _serialise(reply)
+        return socket.send(reply)
+    
     def send_notification_to(self, address, topic, data):
         socket = self.get_socket(address, "publisher")
         return socket.send_multipart(_serialise_for_pubsub(topic, data))
     
     def wait_for_notification_from(self, address, topic, wait_for_s):
-        socket = self.get_socket(address, "subscriber")
+        if isinstance(address, list):
+            addresses = address
+        else:
+            addresses = [address]
+        socket = self.get_socket(addresses, "subscriber")
         if isinstance(topic, str):
             topics = [topic]
         else:

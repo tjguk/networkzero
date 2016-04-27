@@ -65,7 +65,7 @@ class NoAddressFoundError(AddressError):
 
 class InvalidAddressError(NetworkZeroError):
     
-    def __init__(self, address, errno):
+    def __init__(self, address, errno=None):
         self.address = address
         self.errno = errno
 
