@@ -29,7 +29,7 @@ Make it easy for learning groups to use simple networking in Python
 
 * Tests: to run the tests, run tox
 
-At the time of writing, all 27 tests pass on:
+At the time of writing, all tests pass on:
 
 * Windows 8
 * Debian Jessie
@@ -46,9 +46,7 @@ Discovery
 
 * address = advertise(name, address=None)
 
-* address = discover(name, wait_for_secs=FOREVER)
-
-* unadvertise(name[, wait_for_secs=SHORT_WAIT])
+* address = discover(name, wait_for_s=FOREVER)
 
 * [(name, address), ...] = discover_all()
 
@@ -59,9 +57,9 @@ Messaging
 
 * message = wait_for_message_from(address, [wait_for_s=FOREVER])
 
-* send_notification_on(address, notification)
+* send_notification_to(address, notification)
 
-* wait_for_notification+from(address[, pattern=EVERYTHING][, wait_for_s=FOREVER])
+* wait_for_notification_from(address[, pattern=EVERYTHING][, wait_for_s=FOREVER])
 
 Typical Usage
 -------------
@@ -83,10 +81,10 @@ On computer (or process) B and C and D...::
 
     import networkzero as nw0
     
-    hello = nw0.discover("hello")
-    nw0.send_message_to(hello, "World")
-    reply = nw0.wait_for_reply_from(hello)
+    server = nw0.discover("hello")
+    nw0.send_message_to(server, "World")
+    reply = nw0.wait_for_reply_from(server)
     print(reply)
-    nw0.send_message_to(hello, "Tim")
-    reply = nw0.wait_for_reply_from(hello)
+    nw0.send_message_to(server, "Tim")
+    reply = nw0.wait_for_reply_from(server)
     print(reply)

@@ -60,6 +60,14 @@ class SupportThread(threading.Thread):
             socket.send(nw0.sockets._serialise(message))
             socket.recv()
 
+    def support_test_wait_for_message_from_with_autoreply(self, address, q):
+        with self.context.socket(roles['speaker']) as socket:
+            socket.connect("tcp://%s" % address)
+            message = uuid.uuid4().hex
+            socket.send(nw0.sockets._serialise(message))
+            reply = nw0.sockets._unserialise(socket.recv())
+            q.put(reply)
+
     def support_test_send_reply_to(self, address, queue):
         message = uuid.uuid4().hex
         with self.context.socket(roles['speaker']) as socket:
@@ -183,6 +191,13 @@ def test_wait_for_message_with_timeout():
     message = nw0.wait_for_message_from(address, wait_for_s=0.1)
     assert message is None
 
+def test_wait_for_message_with_autoreply(support):
+    address = nw0.core.address()
+    reply_queue = queue.Queue()
+    support.queue.put(("wait_for_message_from_with_autoreply", [address, reply_queue]))
+    nw0.wait_for_message_from(address, autoreply=True)
+    assert reply_queue.get() is nw0.messenger.AUTOREPLY
+    
 #
 # send_reply_to
 #
@@ -239,6 +254,9 @@ def test_wait_for_notification(support):
 
 #
 # send to multiple addresses
+# For now, this is disallowed as the semantics aren't
+# intuitive. (It does a round-robin selection which is useful
+# for things like load-scheduling but not for broadcasting).
 #
 def test_send_to_multiple_addresses(support):
     address1 = nw0.core.address()
