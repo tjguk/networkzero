@@ -53,7 +53,7 @@ Discovery
 Messaging
 ~~~~~~~~~
 
-* send_message_to(address, message)
+* reply = send_message_to(address, message, wait_for_reply_s=FOREVER)
 
 * message = wait_for_message_from(address, [wait_for_s=FOREVER])
 
@@ -82,9 +82,7 @@ On computer (or process) B and C and D...::
     import networkzero as nw0
     
     server = nw0.discover("hello")
-    nw0.send_message_to(server, "World")
-    reply = nw0.wait_for_reply_from(server)
+    reply = nw0.send_message_to(server, "World")
     print(reply)
-    nw0.send_message_to(server, "Tim")
-    reply = nw0.wait_for_reply_from(server)
+    reply = nw0.send_message_to(server, "Tim")
     print(reply)
