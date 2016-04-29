@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
+import uuid
+
 from . import config
 from . import core
 from . import sockets
 
 _logger = core.get_logger(__name__)
-AUTOREPLY = None
+EMPTY = u'92c21b8908764e67874de52d09c9f9d8'
 
-def send_message_to(address, message, wait_for_reply_s=config.FOREVER):
+def send_message_to(address, message=EMPTY, wait_for_reply_s=config.FOREVER):
     """Send a message and return the reply
     
     :param address: a nw0 address (eg from `nw0.discover`)
@@ -20,19 +22,19 @@ def send_message_to(address, message, wait_for_reply_s=config.FOREVER):
         raise core.InvalidAddressError("Multiple addresses are not allowed")
     return sockets._sockets.send_message_to(address, message, wait_for_reply_s)
 
-def wait_for_message_from(address, wait_for_s=config.FOREVER, autoreply=False):
+def wait_for_message_from(address, wait_for_s=config.FOREVER, wait_for_reply=True):
     """Wait for a message
     
     :param address: a nw0 address (eg from `nw0.advertise`)
     :param wait_for_s: how many seconds to wait for a message before giving up [default: forever]
-    :param autoreply: whether to send an empty reply [default: No]
+    :param wait_for_reply: whether to wait for a reply [default: Yes]
     
     :returns: the message received from another address or None if out of time
     """
     _logger.info("Waiting for message on %s for %s secs", address, wait_for_s)
     message = sockets._sockets.wait_for_message_from(address, wait_for_s)
-    if message is not None and autoreply:
-        sockets._sockets.send_reply_to(address, AUTOREPLY)
+    if message is not None and not wait_for_reply:
+        sockets._sockets.send_reply_to(address, EMPTY)
     return message
 
 def send_reply_to(address, reply):

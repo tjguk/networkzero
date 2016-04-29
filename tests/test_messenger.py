@@ -174,6 +174,17 @@ def test_send_message(support):
     reply = nw0.send_message_to(address, message)
     assert reply == message
 
+def test_send_message_with_timeout(support):
+    address = nw0.core.address()
+    with pytest.raises(nw0.core.SocketTimedOutError):
+        nw0.send_message_to(address, wait_for_reply_s=1.0)
+
+def test_send_message_empty(support):
+    address = nw0.core.address()
+    support.queue.put(("send_message_to", [address]))
+    reply = nw0.send_message_to(address)
+    assert reply == nw0.messenger.EMPTY
+
 #
 # wait_for_message_from
 #
@@ -195,8 +206,8 @@ def test_wait_for_message_with_autoreply(support):
     address = nw0.core.address()
     reply_queue = queue.Queue()
     support.queue.put(("wait_for_message_from_with_autoreply", [address, reply_queue]))
-    nw0.wait_for_message_from(address, autoreply=True)
-    assert reply_queue.get() is nw0.messenger.AUTOREPLY
+    nw0.wait_for_message_from(address, wait_for_reply=False)
+    assert reply_queue.get() == nw0.messenger.EMPTY
     
 #
 # send_reply_to
