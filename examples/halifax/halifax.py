@@ -18,11 +18,12 @@ if len(sys.argv) == 2:
 else:
     first_word = ''
 
+N_SECONDS_WAIT_FOR_NEIGHBOURS = 5
 #
 # Wait 30 seconds to discover all neighbours
 #
-print("Waiting for neighbours to show up...")
-time.sleep(10)
+print("Waiting %d seconds for neighbours to show up..." % N_SECONDS_WAIT_FOR_NEIGHBOURS)
+time.sleep(N_SECONDS_WAIT_FOR_NEIGHBOURS)
 
 print("Looking for neighbours")
 addresses = [address for (name, address) in nw0.discover_group("halifax", exclude=[my_name])]
@@ -35,7 +36,7 @@ while True:
         first_word = None
     else:
         print("Waiting for next word...")
-        word = nw0.wait_for_message_from(my_address)
+        word = nw0.wait_for_message_from(my_address, wait_for_reply=False)
 
     print("Got word", word)
     candidate_words = words[word[-1]]
