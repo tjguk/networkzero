@@ -43,17 +43,27 @@ class TestAddress(object):
     def test_invalid_ip_supplied(self):
         address = "!!!"
         with pytest.raises(nw0.core.InvalidAddressError):
-            canonical_address = nw0.core.address(address)
+            nw0.core.address(address)
 
     def test_invalid_port_supplied(self):
         address = 123456
         with pytest.raises(nw0.core.AddressError):
-            canonical_address = nw0.core.address(address)
+            nw0.core.address(address)
 
     def test_invalid_both_supplied(self):
         address = "!!!:INVALID"
         with pytest.raises(nw0.core.AddressError):
-            canonical_address = nw0.core.address(address)
+            nw0.core.address(address)
+    
+    def test_valid_ip_pattern_supplied(self):
+        address = "127.*"
+        canonical_address = nw0.core.address(address)
+        assert is_valid_address(canonical_address)
+    
+    def test_invalid_ip_pattern_supplied(self):
+        address = "255.*"
+        with pytest.raises(nw0.core.AddressError):
+            nw0.core.address(address)
 
 class TestCommand(object):
     
