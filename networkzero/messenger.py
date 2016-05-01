@@ -6,7 +6,7 @@ from . import core
 from . import sockets
 
 _logger = core.get_logger(__name__)
-EMPTY = u'92c21b8908764e67874de52d09c9f9d8'
+EMPTY = None
 
 def send_message_to(address, message=EMPTY, wait_for_reply_s=config.FOREVER):
     """Send a message and return the reply
