@@ -376,7 +376,7 @@ def _start_beacon():
         _logger.debug("About to start beacon")
         try:
             _beacon = _Beacon()
-        except OSError as exc:
+        except (OSError, socket.error) as exc:
             if exc.errno == errno.EADDRINUSE:
                 _logger.warn("Beacon already active on this machine")
                 #
