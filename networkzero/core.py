@@ -122,7 +122,19 @@ def _find_ip4_addresses():
             for info in netifaces.ifaddresses(interface).get(netifaces.AF_INET, []):
                 if info['addr']:
                     _ip4_addresses.append(info['addr'])
-    
+
+    # Make the default (first in list) IP be the one on the network with the
+    # default gateway
+    # Done here to avoid overriding current method of prioritising IP address
+    # preferred by the user
+    proto = socket.AF_INET
+    default_gateway_interface = netifaces.gateways()['default'][proto][1]
+    default_interface = netifaces.ifaddresses(default_gateway_interface)
+    # Get first address on interface
+    default_interface_address = default_interface[proto][0]['addr']
+    _ip4_addresses.remove(default_interface_address)
+    _ip4_addresses.insert(0, default_interface_address)
+
     return _ip4_addresses    
 
 _ip4 = None
