@@ -12,6 +12,6 @@ print("Hub on", hub)
 updates = nw0.advertise("chat-updates")
 print("Updates on", updates)
 while True:
-    action, params = nw0.wait_for_message_from(hub)
+    action, params = nw0.wait_for_message_from(hub, autoreply=True)
     print("Action: %s, Params: %s" % (action, params))
     nw0.send_notification_to(updates, action, params)

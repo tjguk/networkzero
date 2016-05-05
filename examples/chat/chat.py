@@ -1,3 +1,4 @@
+import sys
 import networkzero as nw0
 
 print("Looking for chat hub")
@@ -8,16 +9,20 @@ if not hub:
 
 print("Chat hub found at", hub)
 
-name = input("Name: ")
-nw0.send_message_to(hub, ["JOIN", name])
-try:
-    while True:
-        try:
-            message = input("Message: ")
-        except KeyboardInterrupt:
-            message = None
-        if not message:
-            break
-        nw0.send_message_to(hub, ["SPEAK", (name, message)])
-finally:
-    nw0.send_message_to(hub, ["LEAVE", name])
+def main(name=None):
+    name = name or input("Name: ")
+    nw0.send_message_to(hub, ["JOIN", name])
+    try:
+        while True:
+            try:
+                message = input("Message: ")
+            except KeyboardInterrupt:
+                message = None
+            if not message:
+                break
+            nw0.send_message_to(hub, ["SPEAK", (name, message)])
+    finally:
+        nw0.send_message_to(hub, ["LEAVE", name])
+
+if __name__ == '__main__':
+    main(*sys.argv[1:])
