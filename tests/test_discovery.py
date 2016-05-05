@@ -13,7 +13,6 @@ import networkzero as nw0
 _logger = nw0.core.get_logger("networkzero.tests")
 nw0.core._enable_debug_logging()
 
-is_valid_ip = nw0.core.is_valid_ip
 is_valid_port = nw0.core.is_valid_port
 is_valid_address = nw0.core.is_valid_address
 
