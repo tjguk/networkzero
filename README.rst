@@ -17,6 +17,8 @@ Make it easy for learning groups to use simple networking in Python
     and approaches shifting slightly. As before, please feel free to try
     out but not stable yet. TJG
 
+    **5th May 2016** Closing in on freeze for 1.0
+
 * Docs: http://networkzero.readthedocs.org/en/latest/
 
 * Development: https://github.com/tjguk/networkzero
@@ -64,10 +66,6 @@ Messaging
 Typical Usage
 -------------
 
-..  warning::
-
-    This API is *still* provisional. And it is changing by the day.
-    
 On computer (or process) A::
 
     import networkzero as nw0
