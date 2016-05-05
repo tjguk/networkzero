@@ -22,18 +22,18 @@ def send_message_to(address, message=EMPTY, wait_for_reply_s=config.FOREVER):
         raise core.InvalidAddressError("Multiple addresses are not allowed")
     return sockets._sockets.send_message_to(address, message, wait_for_reply_s)
 
-def wait_for_message_from(address, wait_for_s=config.FOREVER, wait_for_reply=True):
+def wait_for_message_from(address, wait_for_s=config.FOREVER, autoreply=False):
     """Wait for a message
     
     :param address: a nw0 address (eg from `nw0.advertise`)
     :param wait_for_s: how many seconds to wait for a message before giving up [default: forever]
-    :param wait_for_reply: whether to wait for a reply [default: Yes]
+    :param autoreply: whether to send an empty reply [default: No]
     
     :returns: the message received from another address or None if out of time
     """
     _logger.info("Waiting for message on %s for %s secs", address, wait_for_s)
     message = sockets._sockets.wait_for_message_from(address, wait_for_s)
-    if message is not None and not wait_for_reply:
+    if message is not None and autoreply:
         sockets._sockets.send_reply_to(address, EMPTY)
     return message
 
