@@ -206,7 +206,7 @@ def test_wait_for_message_with_autoreply(support):
     address = nw0.core.address()
     reply_queue = queue.Queue()
     support.queue.put(("wait_for_message_from_with_autoreply", [address, reply_queue]))
-    nw0.wait_for_message_from(address, wait_for_reply=False)
+    nw0.wait_for_message_from(address, autoreply=True)
     assert reply_queue.get() == nw0.messenger.EMPTY
     
 #
