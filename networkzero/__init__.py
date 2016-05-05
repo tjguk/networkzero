@@ -18,17 +18,19 @@ To send a message and wait for a reply::
     echo_address = nw0.advertise("echo")
     while True:
         name = nw0.wait_for_message_from(echo_address)
-        nw0.send_message_to(echo_address, "Hello " + name)
+        nw0.send_reply_to(echo_address, "Hello " + name)
+
+::
 
     [Computer 2]
     import networkzero as nw0
 
     echo_address = nw0.discover("echo")
     
-    nw0.send_message_to(echo_address, "Alice")
-    print(nw0.wait_for_message_from(echo_address))
-    nw0.send_message_to(echo_address, "Bob")
-    print(nw0.wait_for_message_from(echo_address))
+    reply = nw0.send_message_to(echo_address, "Alice")
+    print(reply)
+    reply = nw0.send_message_to(echo_address, "Bob")
+    print(reply)
 
 To send notifications::
 
@@ -42,12 +44,14 @@ To send notifications::
         #
         nw0.send_notification_to(address, "data", ...)
 
+::
+
     [Computer 2, 3, 4...]
     import networkzero as nw0
     
     logger = nw0.discover("data-logger")
     while True:
-        topic, data = nw0.wait_for_notification_from(address, topic)
+        topic, data = nw0.wait_for_notification_from(logger, "data")
         #
         # ... write the data to a database etc.
         #

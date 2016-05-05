@@ -28,7 +28,7 @@ will update or return its internal list of advertised services.
 
 As an additional convenience, the :func:`advertise` function will, if given no
 specific address, generate a suitable ip:port pair by interrogating the system.
-This functionality is actually in :func:`core.address` (qv).
+This functionality is actually in :func:`networkzero.address` (qv).
 """
 import os, sys
 import collections
