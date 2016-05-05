@@ -15,12 +15,14 @@ Design Guidelines
 
 * As much as possible, code should work in the interactive interpreter
   
-* Thread-safety is not a priority [although see this issue https://github.com/tjguk/networkzero/issues/9]
-  
+* Thread-safety should be considered especially since libraries such as GPIOZero
+  implement callbacks via threads, so NetworkZero code might unwittingly
+  be invoked from within a thread.
+
 * Code will work unchanged on one box and on several.
 
 * Code will work unchanged on Linux, OS X & Windows, assuming
-  that the pre-requisites are met (basically: recent Python & zmqlib).
+  that the prerequisites are met (basically: recent Python & zmqlib).
   
 * Code will work unchanged on Python 2.7 and Python 3.2+
 

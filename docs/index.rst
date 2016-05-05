@@ -11,6 +11,8 @@ NetworkZero
     **21st April 2016** Still a lot of development going on. APIs changing
     and approaches shifting slightly. As before, please feel free to try
     out but not stable yet. TJG
+    
+    **5th April 2016** Close to freeze for 1.0
 
 NetworkZero makes it easier to use Python to connect things together 
 across the. It's especially focused on the classroom 
@@ -20,8 +22,8 @@ know IP addresses or hostnames.
 
 It offers two main services:
 
-    * A means of discovering short-lived and ad hoc programs
-    * A way to send simple Python objects between those programs
+    * Discovering short-lived and ad hoc programs
+    * Sending simple Python objects between programs
 
 What can I use it for?
 ----------------------
@@ -30,8 +32,10 @@ Anything which can make use of one machine or process to talk to
 another across a network. For example:
 
     * Sending commands to a robot
-    * Sending data from an RPi with a sensor to a graphing PC and a long-term storage log
-    * Showing the state of a shared game in one window while sending commands from another.
+    * Sending data from an RPi with a sensor to a graphing PC and a 
+      long-term storage log
+    * Showing the state of a shared game in one window while sending 
+      commands from another.
 
 Can you give me an example?
 ---------------------------

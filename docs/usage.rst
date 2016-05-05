@@ -19,14 +19,14 @@ Message-Sending
 
 To send a message and receive a reply:
 
-* :func:`send_message` -- send a message to an address
-* :func:`wait_for_message` -- wait for a message to arrive at an address
-* :func:`send_reply` -- send a reply from an address to a message
+* :func:`send_message_to` -- send a message to an address
+* :func:`wait_for_message_from` -- wait for a message to arrive at an address
+* :func:`send_reply_to` -- send a reply from an address to a message
 
 To have several machines subscribe to topics from a publisher:
 
-* :func:`send_notification` -- send a message to everyone subscribed to a topic at an address
-* :func:`wait_for_notification` -- subscribe to and wait for a topic-specific message from a publisher
+* :func:`send_notification_to` -- send a message to everyone subscribed to a topic at an address
+* :func:`wait_for_notification_from` -- subscribe to and wait for a topic-specific message from a publisher
 
 General
 ~~~~~~~
@@ -66,11 +66,15 @@ makes it easy to generate an address automatically. If you pass no address to
 :func:`advertise`, an address will be returned, constructed from your machine's 
 IP address and a pool of spare ports.
 
+The IP address can be a wildcard, eg "192.168.*". This will nudge the
+automatic address onto a valid address which matches that network. This
+is useful where your machine has multiple valid addresses, each on a
+different network.
+
 ..  note::
 
-    You don't need to ask NetworkZero to generate an address: any valid address
-    can be used. This can be useful in the unlikely event that the automatic address 
-    is for the wrong network or clashes with an existing port.
+    You don't *need* to ask NetworkZero to generate an address: any valid address
+    can be used. The automatic address is merely a convenience.
 
 Message
 ~~~~~~~

@@ -4,11 +4,12 @@ Questions to be answered
 * Do you have to use ZeroMQ? Why not avoid dependencies?
 
   There's nothing in the design which requires ZeroMQ. The API contract
-  hides the implementation. However ZeroMQ does what we need and is 
+  hides the implementation. However ZeroMQ does what is needed and is 
   available cross-platform and cross-language and with Python bindings.
   
-  (Just came across http://nanomsg.org/index.html which is something similar
-  but implemented by someone who cares about Posix-compliance & open licensing).
+  (Just came across http://nanomsg.org/index.html which is a -- possibly
+  unmaintained -- fork of ZeroMQ with a particular eye to Posix-compliance & 
+  open licensing).
   
   A couple more factors have been pointed out which tell against using
   ZeroMQ as a dependency:
@@ -21,7 +22,7 @@ Questions to be answered
 * Why not use [some zeroconf implementation]?
 
   This is somewhat the converse of the ZeroMQ question above. And the answer
-  is similar: there's nothing which precludes the use of using a zeroconf
+  is similar, *mutatis mutandis*: there's nothing which precludes the use of using a zeroconf
   solution on a given platform. But cross-platform support is spotty, and
   it's more geared towards, eg, printer discovery and machine discovery. 
   What we're after is a little more ad hoc and transient.
@@ -39,7 +40,7 @@ Questions to be answered
   reflection that it is best left out of a simple package like this.
   [*UPDATE*: multiple registration has been removed]
   
-  If were needed, eg in a many-to-many chat situation, it could be implemented
+  If it were needed, eg in a many-to-many chat situation, it could be implemented
   fairly easily on top of networkzero by defining a "service:<GUID>" naming
   convention to distinguish related by distinct services.
   
@@ -69,7 +70,7 @@ Questions to be answered
   [**UPDATE**: I've removed the command functionality, having decided that 
   the value that it brings is not worth the ambiguity it adds to the API. 
   To help in the common case, I've added an autoreply option to 
-  :func:`networkzero.wait_for_message` and a helper function 
+  :func:`networkzero.wait_for_message_from` and a helper function 
   :func:`networkzero.action_and_params` which will take a text commandline
   and return a command and its params.]
 
@@ -97,7 +98,7 @@ Questions to be answered
   
   [**UPDATE**: We're now using the x-platform netifaces module as an external
   dependency to determine all local IP4 addresses. We're also allowing
-  the :func:`nw0.address` function to take a wildcard IP so that, for
+  the :func:`networkzero.address` function to take a wildcard IP so that, for
   example, you could specify that you want a command in the 192.168.1.*
   network without knowing exactly which one you're currently bound to.]
 
@@ -139,6 +140,11 @@ Questions to be answered
   far more trouble than it was worth). JSON would be an obvious x-platform
   alternative but, when I tried it, gave some difficulties over encoding.
   (Waves hands; I can't remember exactly what the issue was...)
+  
+  [**UPDATE**: we're now using JSON to avoid the issue with marshalled
+  data not working across different Python versions. This does mean 
+  that bytestrings cannot be used directly (nor any other type which
+  doesn't support JSON serialisation)].
   
   pickle has well-known security implications. There are pickle-alikes
   (dill, serpent) in the Python space which do a better job, but they're

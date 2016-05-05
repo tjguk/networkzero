@@ -43,7 +43,7 @@ Using NetworkZero
     network on the same or different machines. However, the discovery is always
     merely a shortcut: it's always possible to pass a literal ip:port address.
 
-*   Three simple means of sending and receiving data, each with its own
+*   Two simple means of sending and receiving data, each with its own
     semantics and uses.
 
 *   Simple Python data can be sent transparently. Except when sending/receiving
@@ -68,7 +68,10 @@ which allows for discovery doesn't work.
 Or it might be that one or more machines have multiple IP addresses. This could be the
 case, for example, if you have a PiNet setup running over wired ethernet while the boxes
 also have WiFi adapters. This might mean that the address which one advertises is on its
-ethernet address while the other attempts to reach it over WiFi.
+ethernet address while the other attempts to reach it over WiFi. You can work
+around this partly by passing a wildcard IP address which will attempt to
+use an address on *that* network as opposed to any of the others which
+the machine may have.
 
 Keyboard Input blocks the network
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

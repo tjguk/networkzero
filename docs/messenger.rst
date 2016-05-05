@@ -21,10 +21,35 @@ Functions
 
 Sending Messages
 ~~~~~~~~~~~~~~~~
+
+Messages are exchanged in a strict request / reply sequence. This restricts
+flexibility but makes the semantics obvious. A message is sent to an
+address and the process waits until a reply is received. Likewise, a message
+is awaited from an address and a reply must be sent before another message
+can be received.
+
+The data sent as part of the message will be serialised as JSON so any
+object supported by the Python JSON library is a candidate for message payload.
+
+Any number of processes can send a message to one process which is listening.
+The messages are sent in a strict request-reply sequence so no ambiguity
+should occur.
+
 ..  autofunction:: send_message_to
 ..  autofunction:: wait_for_message_from
+..  autofunction:: send_reply_to
 
 Sending Notifications
 ~~~~~~~~~~~~~~~~~~~~~
+
+Notifications (also known as publications & subscriptions or "pubsub") allow
+multiple processes to wait for messages from one (or more) processes. This
+is not possible in the message-sending functionality above. There is a notion
+of "topics" which allow a publisher to produce a broader range of notifications
+to which a subscriber need only listen for some.
+
+Since a wildcard filter can be used for the topic, the topic used is returned
+along with the data when a notification is received.
+
 ..  autofunction:: send_notification_to
 ..  autofunction:: wait_for_notification_from
