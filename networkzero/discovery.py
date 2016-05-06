@@ -139,10 +139,12 @@ class _Beacon(threading.Thread):
     beacon_message_size = 256
     time_between_broadcasts_s = config.BEACON_ADVERT_FREQUENCY_S
     
-    def __init__(self):
+    def __init__(self, beacon_port=None):
         threading.Thread.__init__(self)
         self.setDaemon(True)
         self._stop_event = threading.Event()
+        
+        self.beacon_port = beacon_port or self.__class__.beacon_port
         
         #
         # Services we're advertising
@@ -361,7 +363,7 @@ class _Beacon(threading.Thread):
 _beacon = None
 _remote_beacon = object()
 
-def _start_beacon():
+def _start_beacon(beacon_port=None):
     """Start a beacon thread within this process if no beacon is currently
     running on this machine.
     
@@ -375,7 +377,7 @@ def _start_beacon():
     if _beacon is None:
         _logger.debug("About to start beacon")
         try:
-            _beacon = _Beacon()
+            _beacon = _Beacon(beacon_port)
         except OSError as exc:
             if exc.errno == errno.EADDRINUSE:
                 _logger.warn("Beacon already active on this machine")
