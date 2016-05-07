@@ -66,7 +66,9 @@ Messaging
 Typical Usage
 -------------
 
-On computer (or process) A::
+On computer (or process) A:
+
+.. code-block:: python
 
     import networkzero as nw0
     
@@ -75,7 +77,9 @@ On computer (or process) A::
         name = nw0.wait_for_message_from(address)
         nw0.send_message_to(address, "Hello, %s" % name)
         
-On computer (or process) B and C and D...::
+On computer (or process) B and C and D...:
+
+.. code-block:: python
 
     import networkzero as nw0
     
