@@ -12,7 +12,7 @@ NetworkZero
     and approaches shifting slightly. As before, please feel free to try
     out but not stable yet. TJG
     
-    **5th April 2016** Close to freeze for 1.0
+    **5th May 2016** Closing in on freeze for 1.0
 
 NetworkZero makes it easier to use Python to connect things together 
 across the. It's especially focused on the classroom 
