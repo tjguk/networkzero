@@ -363,7 +363,7 @@ class _Beacon(threading.Thread):
 _beacon = None
 _remote_beacon = object()
 
-def _start_beacon(beacon_port=None):
+def _start_beacon(port=None):
     """Start a beacon thread within this process if no beacon is currently
     running on this machine.
     
@@ -377,7 +377,7 @@ def _start_beacon(beacon_port=None):
     if _beacon is None:
         _logger.debug("About to start beacon")
         try:
-            _beacon = _Beacon(beacon_port)
+            _beacon = _Beacon(port)
         except OSError as exc:
             if exc.errno == errno.EADDRINUSE:
                 _logger.warn("Beacon already active on this machine")

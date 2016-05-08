@@ -2,7 +2,9 @@ try:
     import queue
 except ImportError:
     import Queue as queue
+import random
 import re
+import socket
 import threading
 import time
 import uuid
@@ -58,6 +60,23 @@ def support(request):
 @pytest.fixture
 def beacon(request):
     nw0.discovery.reset_beacon()
+
+def test_beacon_already_running():
+    #
+    # Bind a socket on a random port before attempting
+    # to start a beacon on that same port.
+    #
+    port = random.choice(nw0.config.DYNAMIC_PORTS)
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    s.bind(("", port))
+    try:
+        assert nw0.discovery._beacon is None
+        nw0.discovery._start_beacon(port=port)
+        assert nw0.discovery._beacon is nw0.discovery._remote_beacon
+    finally:
+        s.shutdown(socket.SHUT_RDWR)
+        s.close()
 
 def test_advertise_no_address(beacon):
     service = uuid.uuid4().hex
