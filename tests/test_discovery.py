@@ -59,9 +59,9 @@ def support(request):
 
 @pytest.fixture
 def beacon(request):
-    nw0.discovery.reset_beacon()
+    request.addfinalizer(nw0.discovery._stop_beacon)
 
-def test_beacon_already_running():
+def test_beacon_already_running(beacon):
     #
     # Bind a socket on a random port before attempting
     # to start a beacon on that same port.
@@ -77,6 +77,11 @@ def test_beacon_already_running():
     finally:
         s.shutdown(socket.SHUT_RDWR)
         s.close()
+        #
+        # Make sure any future beacon use assumes it's not
+        # already running.
+        #
+        nw0.discovery._stop_beacon()
 
 def test_advertise_no_address(beacon):
     service = uuid.uuid4().hex

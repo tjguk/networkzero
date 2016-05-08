@@ -145,6 +145,7 @@ class _Beacon(threading.Thread):
         self._stop_event = threading.Event()
         
         self.beacon_port = beacon_port or self.__class__.beacon_port
+        _logger.debug("Using beacon port %s", self.beacon_port)
         
         #
         # Services we're advertising
@@ -375,7 +376,7 @@ def _start_beacon(port=None):
     """
     global _beacon
     if _beacon is None:
-        _logger.debug("About to start beacon")
+        _logger.debug("About to start beacon with port %s", port)
         try:
             _beacon = _Beacon(port)
         except (OSError, socket.error) as exc:
@@ -392,6 +393,18 @@ def _start_beacon(port=None):
                 raise
         else:
             _beacon.start()
+
+def _stop_beacon():
+    #
+    # Mostly for testing: shutdown the beacon if it's running
+    # locally and clear it globally so the next attempt will
+    # start fresh.
+    #
+    global _beacon
+    if _beacon and _beacon is not _remote_beacon:
+        _beacon.stop()
+        _beacon.join()
+    _beacon = None
 
 def _rpc(action, *args):
     _logger.debug("About to send rpc request %s with args %s", action, args)

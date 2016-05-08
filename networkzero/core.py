@@ -255,7 +255,7 @@ def address(address=None):
         try:
             ip = socket.gethostbyname(host_or_ip)
         except socket.gaierror as exc:
-            _logger.error("gaierror %d", exc.errno)
+            _logger.error("gaierror %d for %s", exc.errno, host_or_ip)
             raise InvalidAddressError(host_or_ip, exc.errno)
         else:
             #
