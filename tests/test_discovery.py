@@ -75,7 +75,7 @@ def test_beacon_already_running(beacon):
         nw0.discovery._start_beacon(port=port)
         assert nw0.discovery._beacon is nw0.discovery._remote_beacon
     finally:
-        s.shutdown(socket.SHUT_RDWR)
+        #~ s.shutdown(socket.SHUT_RDWR)
         s.close()
         #
         # Make sure any future beacon use assumes it's not
