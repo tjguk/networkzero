@@ -1,6 +1,12 @@
 import sys
 import networkzero as nw0
 
+try:
+    # Python 2.7 compat
+    input = raw_input
+except NameError:
+    pass
+
 print("Looking for chat hub")
 hub = nw0.discover("chat-hub")
 if not hub:
