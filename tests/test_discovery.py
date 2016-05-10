@@ -59,9 +59,13 @@ def support(request):
 
 @pytest.fixture
 def beacon(request):
+    port = random.choice(nw0.config.DYNAMIC_PORTS)
+    nw0.discovery._start_beacon(port=port)
     request.addfinalizer(nw0.discovery._stop_beacon)
 
-def test_beacon_already_running(beacon):
+def test_beacon_already_running():
+    #
+    # NB this one has to run without the beacon fixture
     #
     # Bind a socket on a random port before attempting
     # to start a beacon on that same port.
@@ -75,7 +79,6 @@ def test_beacon_already_running(beacon):
         nw0.discovery._start_beacon(port=port)
         assert nw0.discovery._beacon is nw0.discovery._remote_beacon
     finally:
-        #~ s.shutdown(socket.SHUT_RDWR)
         s.close()
         #
         # Make sure any future beacon use assumes it's not
