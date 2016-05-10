@@ -60,7 +60,7 @@ def support(request):
 def beacon(request):
     port = random.choice(nw0.config.DYNAMIC_PORTS)
     nw0.discovery._start_beacon(port=port)
-    request.addfinalizer(nw0.discovery._stop_beacon)
+    request.addfinalizer(nw0.discovery.reset_beacon)
 
 def test_beacon_already_running():
     #
