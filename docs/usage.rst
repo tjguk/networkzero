@@ -51,7 +51,7 @@ Examples:
 
 * `pi:1234`
 * `127.0.0.1:45678`
-* `192.168.0.5:9876`
+* `192.0.2.5:9876`
 
 If you know what you're about, you can simply pass one of these around directly, eg::
 

@@ -99,7 +99,7 @@ Questions to be answered
   [**UPDATE**: We're now using the x-platform netifaces module as an external
   dependency to determine all local IP4 addresses. We're also allowing
   the :func:`networkzero.address` function to take a wildcard IP so that, for
-  example, you could specify that you want a command in the 192.168.1.*
+  example, you could specify that you want a command in the 192.0.2.*
   network without knowing exactly which one you're currently bound to.]
 
 * Exceptions or returning None/sentinel?

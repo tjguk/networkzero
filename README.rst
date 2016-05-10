@@ -41,7 +41,7 @@ At the time of writing, all tests pass on:
 API
 ---
 
-address below refers to an IP:Port string eg "192.168.1.5:4567"
+address below refers to an IP:Port string eg "192.0.2.5:4567"
 
 Discovery
 ~~~~~~~~~
