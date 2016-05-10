@@ -2,7 +2,6 @@
 import fnmatch
 import logging
 import random
-import re
 import shlex
 import socket
 
@@ -94,12 +93,16 @@ def split_address(address):
             ip, port = address, ""
     return ip, port
 
-def is_valid_ip(ip):
-    #
-    # Check whether a string matches the outline of an IP address, 
-    # allowing "*"  as a wildcard
-    #
-    return bool(re.match(r"^[0-9.*]+$", ip))
+def is_valid_ip_pattern(ip):
+    """Check whether a string matches the outline of an IPv4 address, 
+       allowing "*"  as a wildcard"""
+    ip = ip.replace('*', '1')
+    try:
+        socket.inet_aton(ip)
+        return True
+    except socket.error:
+        # Not a valid IPv4 address pattern
+        return False
 
 def is_valid_port(port, port_range=range(65536)):
     try:
@@ -109,7 +112,7 @@ def is_valid_port(port, port_range=range(65536)):
 
 def is_valid_address(address, port_range=range(65536)):
     ip, port = split_address(address)
-    return is_valid_ip(ip) and is_valid_port(port, port_range)
+    return is_valid_ip_pattern(ip) and is_valid_port(port, port_range)
 
 _ip4_addresses = None
 def _find_ip4_addresses():
@@ -224,7 +227,7 @@ def address(address=None):
     # If it's a hostname we attempt to resolve it to an IP address. 
     # It it's nothing or a wildcard we query the system for a matching IP address.
     #
-    if (not host_or_ip) or is_valid_ip(host_or_ip):
+    if (not host_or_ip) or is_valid_ip_pattern(host_or_ip):
         #
         # If a specific IP address is given, use that.
         # If an IP pattern is given (ie something with a wildcard in it) treat
