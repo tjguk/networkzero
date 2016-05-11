@@ -21,7 +21,7 @@ nw0.core._enable_debug_logging()
 roles = nw0.sockets.Sockets.roles
 
 class SupportThread(threading.Thread):
-    """Fake the other end of the message/command/notification chain
+    """Fake the other end of the message/command/news chain
     
     NB we use as little as possible of the nw0 machinery here,
     mostly to avoid the possibility of complicated cross-thread
@@ -76,7 +76,7 @@ class SupportThread(threading.Thread):
             reply = nw0.sockets._unserialise(socket.recv())
         queue.put(reply)
 
-    def support_test_send_notification_to(self, address, topic, queue):
+    def support_test_send_news_to(self, address, topic, queue):
         with self.context.socket(roles['subscriber']) as socket:
             socket.connect("tcp://%s" % address)
             socket.subscribe = topic.encode("utf-8")
@@ -86,7 +86,7 @@ class SupportThread(threading.Thread):
                 if data is not None:
                     break
 
-    def support_test_wait_for_notification_from(self, address, topic, data, sync_queue):
+    def support_test_wait_for_news_from(self, address, topic, data, sync_queue):
         with self.context.socket(roles['publisher']) as socket:
             socket.bind("tcp://%s" % address)
             while True:
@@ -123,7 +123,7 @@ class SupportThread(threading.Thread):
             socket1.close()
             socket2.close()
 
-    def support_test_wait_for_notification_from_multiple_addresses(self, address1, address2, topic, data, sync_queue):
+    def support_test_wait_for_news_from_multiple_addresses(self, address1, address2, topic, data, sync_queue):
         socket1 = self.context.socket(roles['publisher'])
         socket2 = self.context.socket(roles['publisher'])
         try:
@@ -223,17 +223,17 @@ def test_send_reply(support):
     assert reply == message_received
 
 #
-# send_notification_to
+# send_news_to
 #
-def test_send_notification(support):
+def test_send_news(support):
     address = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
     reply_queue = queue.Queue()
     
-    support.queue.put(("send_notification_to", [address, topic, reply_queue]))
+    support.queue.put(("send_news_to", [address, topic, reply_queue]))
     while True:
-        nw0.send_notification_to(address, topic, None)
+        nw0.send_news_to(address, topic, None)
         try:
             in_topic, in_data = reply_queue.get_nowait()
         except queue.Empty:
@@ -241,26 +241,26 @@ def test_send_notification(support):
         else:
             break
 
-    nw0.send_notification_to(address, topic, data)
+    nw0.send_news_to(address, topic, data)
     while in_data is None:
         in_topic, in_data = reply_queue.get()
     
     assert in_topic, in_data == (topic, data)
 
 #
-# wait_for_notification_from
+# wait_for_news_from
 #
-def test_wait_for_notification(support):
+def test_wait_for_news(support):
     address = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
     sync_queue = queue.Queue()
     
-    support.queue.put(("wait_for_notification_from", [address, topic, data, sync_queue]))
-    in_topic, in_data = nw0.wait_for_notification_from(address, topic, wait_for_s=5)
+    support.queue.put(("wait_for_news_from", [address, topic, data, sync_queue]))
+    in_topic, in_data = nw0.wait_for_news_from(address, topic, wait_for_s=5)
     sync_queue.put(True)
     while in_data is None:
-        in_topic, in_data = nw0.wait_for_notification_from(address, topic, wait_for_s=5)
+        in_topic, in_data = nw0.wait_for_news_from(address, topic, wait_for_s=5)
     assert (topic, data) == (in_topic, in_data)
 
 #
@@ -277,21 +277,21 @@ def test_send_to_multiple_addresses(support):
         nw0.send_message_to([address1, address2], message)
 
 #
-# Wait for notifications from multiple addresses
+# Wait for newss from multiple addresses
 #
-def test_wait_for_notification_from_multiple_addresses(support):
+def test_wait_for_news_from_multiple_addresses(support):
     address1 = nw0.core.address()
     address2 = nw0.core.address()
     topic = uuid.uuid4().hex
     data = uuid.uuid4().hex
     sync_queue = queue.Queue()
     
-    support.queue.put(("wait_for_notification_from_multiple_addresses", [address1, address2, topic, data, sync_queue]))
+    support.queue.put(("wait_for_news_from_multiple_addresses", [address1, address2, topic, data, sync_queue]))
     
-    in_topic, in_data = nw0.wait_for_notification_from([address1, address2], topic, wait_for_s=5)        
+    in_topic, in_data = nw0.wait_for_news_from([address1, address2], topic, wait_for_s=5)        
     sync_queue.put(True)
     while in_data is None:
-        in_topic, in_data = nw0.wait_for_notification_from([address1, address2], topic, wait_for_s=5)
+        in_topic, in_data = nw0.wait_for_news_from([address1, address2], topic, wait_for_s=5)
     assert (topic, data) == (in_topic, in_data)    
-    in_topic, in_data = nw0.wait_for_notification_from([address1, address2], topic, wait_for_s=5)
+    in_topic, in_data = nw0.wait_for_news_from([address1, address2], topic, wait_for_s=5)
     assert (topic, data) == (in_topic, in_data)    

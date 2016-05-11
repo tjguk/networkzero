@@ -46,18 +46,18 @@ def send_reply_to(address, reply):
     _logger.debug("Sending reply %s to %s", reply, address)
     return sockets._sockets.send_reply_to(address, reply)
 
-def send_notification_to(address, topic, data=None):
-    """Publish a notification to all subscribers
+def send_news_to(address, topic, data=None):
+    """Publish news to all subscribers
     
     :param address: a nw0 address, eg from `nw0.advertise`
     :param topic: any text object
     :param data: any simple Python object including test & tuples [default: empty]
     """
     _logger.info("Publish topic %s with data %s to %s", topic, data, address)
-    return sockets._sockets.send_notification_to(address, topic, data)
+    return sockets._sockets.send_news_to(address, topic, data)
 
-def wait_for_notification_from(address, prefix=config.EVERYTHING, wait_for_s=config.FOREVER):
-    """Wait for notification whose topic starts with `prefix`.
+def wait_for_news_from(address, prefix=config.EVERYTHING, wait_for_s=config.FOREVER):
+    """Wait for news whose topic starts with `prefix`.
     
     :param address: a nw0 address, eg from `nw0.discover`
     :param prefix: any text object [default: all messages]
@@ -65,5 +65,5 @@ def wait_for_notification_from(address, prefix=config.EVERYTHING, wait_for_s=con
     
     :returns: a 2-tuple of (topic, data) or (None, None) if out of time
     """
-    _logger.info("Listen on %s for notification matching %s waiting for %s secs", address, prefix, wait_for_s)
-    return sockets._sockets.wait_for_notification_from(address, prefix, wait_for_s)
+    _logger.info("Listen on %s for news matching %s waiting for %s secs", address, prefix, wait_for_s)
+    return sockets._sockets.wait_for_news_from(address, prefix, wait_for_s)

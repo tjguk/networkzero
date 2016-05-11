@@ -243,11 +243,11 @@ class Sockets:
         reply = _serialise(reply)
         return socket.send(reply)
     
-    def send_notification_to(self, address, topic, data):
+    def send_news_to(self, address, topic, data):
         socket = self.get_socket(address, "publisher")
         return socket.send_multipart(_serialise_for_pubsub(topic, data))
     
-    def wait_for_notification_from(self, address, topic, wait_for_s):
+    def wait_for_news_from(self, address, topic, wait_for_s):
         if isinstance(address, list):
             addresses = address
         else:

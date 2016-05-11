@@ -32,7 +32,7 @@ To send a message and wait for a reply::
     reply = nw0.send_message_to(echo_address, "Bob")
     print(reply)
 
-To send notifications::
+To send news::
 
     [Computer 1]
     import networkzero as nw0
@@ -42,7 +42,7 @@ To send notifications::
         #
         # ... do stuff
         #
-        nw0.send_notification_to(address, "data", ...)
+        nw0.send_news_to(address, "data", ...)
 
 ::
 
@@ -51,7 +51,7 @@ To send notifications::
     
     logger = nw0.discover("data-logger")
     while True:
-        topic, data = nw0.wait_for_notification_from(logger, "data")
+        topic, data = nw0.wait_for_news_from(logger, "data")
         #
         # ... write the data to a database etc.
         #
@@ -67,5 +67,5 @@ from .core import (
 from .discovery import advertise, discover, discover_all, discover_group
 from .messenger import (
     send_message_to, wait_for_message_from, send_reply_to,
-    send_notification_to, wait_for_notification_from
+    send_news_to, wait_for_news_from
 )
