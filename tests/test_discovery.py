@@ -104,6 +104,22 @@ def test_advertise_full_address(beacon):
     assert address == service_address
     assert [service, address] in nw0.discover_all()
 
+def test_advertise_ttl(beacon):
+    service = uuid.uuid4().hex
+    ttl_s = 5
+    address = nw0.advertise(service, ttl_s=ttl_s)
+    assert [service, address] in nw0.discover_all()
+    #
+    # Stop advert broadcast for long enough that any
+    # stale ones will be expired
+    # 
+    nw0.discovery._pause()
+    try:
+        time.sleep(1 + ttl_s)
+        assert [service, address] not in nw0.discover_all()
+    finally:
+        nw0.discovery._resume()
+
 def test_discover(beacon):
     service = uuid.uuid4().hex
     address = nw0.advertise(service)

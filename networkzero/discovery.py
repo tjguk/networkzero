@@ -101,15 +101,24 @@ class _Service(object):
     """Convenience container with details of a service to be advertised
     
     Includes the name, address and when it is next due to be advertised
+    and when it is due to expire if it was discovered.
     """
     
-    def __init__(self, name, address):
+    def __init__(self, name, address, ttl_s=None):
         self.name = name
         self.address = address
+        self.ttl_s = ttl_s
+        self.expires_at = None if ttl_s is None else (time.time() + ttl_s)
         self.advertise_at = 0
     
     def __str__(self):
-        return "_Service %s at %s due to advertise at %s" % (self.name, self.address, time.ctime(self.advertise_at))
+        return "_Service %s at %s due to advertise at %s and expire at %s" % (
+            self.name, self.address, 
+            time.ctime(self.advertise_at), time.ctime(self.expires_at)
+        )
+    
+    def __eq__(self, other):
+        return self.name == other.name
 
 class _Command(object):
     """Convenience container with details of a running command
@@ -143,6 +152,7 @@ class _Beacon(threading.Thread):
         threading.Thread.__init__(self)
         self.setDaemon(True)
         self._stop_event = threading.Event()
+        self._is_paused = False
         
         self.beacon_port = beacon_port or self.__class__.beacon_port
         _logger.debug("Using beacon port %s", self.beacon_port)
@@ -192,8 +202,8 @@ class _Beacon(threading.Thread):
     #
     # Commands available via RPC are methods whose name starts with "do_"
     #
-    def do_advertise(self, started_at, name, address, fail_if_exists):
-        _logger.debug("Advertise %s on %s %s", name, address, fail_if_exists)
+    def do_advertise(self, started_at, name, address, fail_if_exists, ttl_s):
+        _logger.debug("Advertise %s on %s %s TTL=%s", name, address, fail_if_exists, ttl_s)
         canonical_address = core.address(address)
         
         for service in self._services_to_advertise:
@@ -204,17 +214,26 @@ class _Beacon(threading.Thread):
                 else:
                     _logger.warn("Superseding service %s which already exists on %s", name, service.address)
 
-        self._services_to_advertise.append(_Service(name, canonical_address))
+        service = _Service(name, canonical_address, ttl_s)
+        self._services_to_advertise.append(service)
         #
         # As a shortcut, automatically "discover" any services we ourselves are advertising
         #
-        self._services_found[name] = canonical_address
+        self._services_found[name] = service
             
         return canonical_address
     
+    def do_pause(self, started_at):
+        _logger.debug("Pause")
+        self._is_paused = True
+    
+    def do_resume(self, started_at):
+        _logger.debug("Resume")
+        self._is_paused = False
+    
     def do_discover(self, started_at, name, wait_for_s):
         _logger.debug("Discover %s waiting for %s seconds", name, wait_for_s)
-                
+
         discovered = self._services_found.get(name)
 
         #
@@ -224,7 +243,7 @@ class _Beacon(threading.Thread):
         # * Otherwise we've still got time left: continue
         #
         if discovered:
-            return discovered
+            return discovered.address
         
         if timed_out(started_at, wait_for_s):
             return None
@@ -233,12 +252,14 @@ class _Beacon(threading.Thread):
                 
     def do_discover_all(self, started_at):
         _logger.debug("Discover all")
-        return list(self._services_found.items())
+        return [(service.name, service.address) for service in self._services_found.values()]
     
     def do_reset(self, started_at):
         _logger.debug("Reset")
+        self.do_pause(started_at)
         self._services_found.clear()
         self._services_to_advertise.clear()
+        self.do_resume(started_at)
     
     def do_stop(self, started_at):
         _logger.debug("Stop")
@@ -250,17 +271,30 @@ class _Beacon(threading.Thread):
             return
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
-        service_name, service_address = _unpack(message)
-        self._services_found[service_name] = service_address
+        service_name, service_address, ttl_s = _unpack(message)
+        service = _Service(service_name, service_address, ttl_s)
+        self._services_found[service_name] = service
 
     def broadcast_one_advert(self):
         if self._services_to_advertise:
             next_service = self._services_to_advertise[0]
             if next_service.advertise_at < time.time():
-                message = _pack([next_service.name, next_service.address])
+                message = _pack([next_service.name, next_service.address, next_service.ttl_s])
                 self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
                 next_service.advertise_at = time.time() + self.time_between_broadcasts_s
                 self._services_to_advertise.rotate(-1)
+
+    def remove_expired_adverts(self):
+        for name, service in list(self._services_found.items()):
+            #
+            # A service with an empty expiry time never expired
+            #
+            if service.expires_at is None:
+                continue
+            if service.expires_at <= time.time():
+                _logger.warn("Removing advert for %s which expired at %s",
+                    name, time.ctime(service.expires_at))
+                del self._services_found[name]
 
     def poll_command_request(self):
         """If the command RPC socket has an incoming request,
@@ -335,17 +369,27 @@ class _Beacon(threading.Thread):
                 #
                 if not self._command:
                     self.poll_command_request()
-                
+
                 #
-                # Broadcast the first advert whose advertising schedule
-                # has arrived
+                # If we're paused no adverts will be broadcast. Adverts
+                # will be received and stale ones expired
                 #
-                self.broadcast_one_advert()
+                if not self._is_paused:
+                    #
+                    # Broadcast the first advert whose advertising schedule
+                    # has arrived
+                    #
+                    self.broadcast_one_advert()
                 
                 #
                 # See if an advert broadcast has arrived
                 #
                 self.listen_for_one_advert()
+                
+                #
+                # See if any adverts have expired
+                #
+                self.remove_expired_adverts()
                 
                 #
                 # If we're processing a command, see if it's complete
@@ -419,7 +463,13 @@ def _rpc(action, *args):
         socket.send(_pack([action] + list(args)))
         return _unpack(socket.recv())
 
-def advertise(name, address=None, fail_if_exists=False):
+def _pause():
+    return _rpc("pause")
+
+def _resume():
+    return _rpc("resume")
+
+def advertise(name, address=None, fail_if_exists=False, ttl_s=config.ADVERT_TTL_S):
     """Advertise a name at an address
     
     Start to advertise service `name` at address `address`. If
@@ -434,8 +484,7 @@ def advertise(name, address=None, fail_if_exists=False):
     :returns: the address given or constructed
     """
     _start_beacon()
-    return _rpc("advertise", name, address, fail_if_exists)
-    return address
+    return _rpc("advertise", name, address, fail_if_exists, ttl_s)
 
 def discover(name, wait_for_s=60):
     """Discover a service by name
