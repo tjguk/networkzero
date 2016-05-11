@@ -25,8 +25,8 @@ To send a message and receive a reply:
 
 To have several machines subscribe to topics from a publisher:
 
-* :func:`send_notification_to` -- send a message to everyone subscribed to a topic at an address
-* :func:`wait_for_notification_from` -- subscribe to and wait for a topic-specific message from a publisher
+* :func:`send_news_to` -- send a message to everyone subscribed to a topic at an address
+* :func:`wait_for_news_from` -- subscribe to and wait for a topic-specific message from a publisher
 
 General
 ~~~~~~~
@@ -79,7 +79,7 @@ different network.
 Message
 ~~~~~~~
 
-A message, for the message-passing and notification functionality, can be any built-in
+A message, for the message-passing and news functionality, can be any built-in
 Python object. This will often be just some text, but can be a number or a list, a tuple
 or a dictionary. Note that the restriction to built-in objects is recursive: any lists
 or dictionaries you send can themselves only contain built-in objects.

@@ -59,9 +59,9 @@ Messaging
 
 * message = wait_for_message_from(address, [wait_for_s=FOREVER])
 
-* send_notification_to(address, notification)
+* send_news_to(address, news)
 
-* wait_for_notification_from(address[, pattern=EVERYTHING][, wait_for_s=FOREVER])
+* wait_for_news_from(address[, pattern=EVERYTHING][, wait_for_s=FOREVER])
 
 Typical Usage
 -------------

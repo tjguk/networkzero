@@ -14,7 +14,7 @@ The messenger module offers two ways to send and/or receive messages across
 the network:
 
     * Messages: :func:`send_message_to` / :func:`wait_for_message_from`
-    * Notifications: :func:`send_notification_to` / :func:`wait_for_notification_from`
+    * News: :func:`send_news_to` / :func:`wait_for_news_from`
 
 Functions
 ---------
@@ -39,17 +39,17 @@ should occur.
 ..  autofunction:: wait_for_message_from
 ..  autofunction:: send_reply_to
 
-Sending Notifications
-~~~~~~~~~~~~~~~~~~~~~
+Sending News
+~~~~~~~~~~~~
 
-Notifications (also known as publications & subscriptions or "pubsub") allow
+News (also known as publications & subscriptions or "pubsub") allows
 multiple processes to wait for messages from one (or more) processes. This
 is not possible in the message-sending functionality above. There is a notion
-of "topics" which allow a publisher to produce a broader range of notifications
+of "topics" which allow a publisher to produce a broader range of news
 to which a subscriber need only listen for some.
 
 Since a wildcard filter can be used for the topic, the topic used is returned
-along with the data when a notification is received.
+along with the data when news is received.
 
-..  autofunction:: send_notification_to
-..  autofunction:: wait_for_notification_from
+..  autofunction:: send_news_to
+..  autofunction:: wait_for_news_from

@@ -27,5 +27,5 @@ Message-Sending
 ..  autofunction:: send_message_to
 ..  autofunction:: wait_for_message_from
 ..  autofunction:: send_reply_to
-..  autofunction:: send_notification_to
-..  autofunction:: wait_for_notification_from
+..  autofunction:: send_news_to
+..  autofunction:: wait_for_news_from
