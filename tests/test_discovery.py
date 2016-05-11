@@ -19,7 +19,7 @@ is_valid_port = nw0.core.is_valid_port
 is_valid_address = nw0.core.is_valid_address
 
 class SupportThread(threading.Thread):
-    """Fake the other end of the message/command/notification chain
+    """Fake the other end of the message/command/news chain
     
     NB we use as little as possible of the nw0 machinery here,
     mostly to avoid the possibility of complicated cross-thread
