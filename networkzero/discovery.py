@@ -607,7 +607,7 @@ def reset_beacon():
 
 if __name__ == '__main__':
     handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
+    handler.setLevel(logging.INFO)
     handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
     _logger.addHandler(handler)
     _start_beacon()
