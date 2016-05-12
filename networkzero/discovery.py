@@ -30,10 +30,13 @@ As an additional convenience, the :func:`advertise` function will, if given no
 specific address, generate a suitable ip:port pair by interrogating the system.
 This functionality is actually in :func:`networkzero.address` (qv).
 """
+from __future__ import print_function
 import os, sys
+import atexit
 import collections
 import errno
 import json
+import logging
 import socket
 import threading
 import time
@@ -222,6 +225,16 @@ class _Beacon(threading.Thread):
         self._services_found[name] = service
             
         return canonical_address
+    
+    def do_unadvertise(self, started_at, name):
+        _logger.debug("Unadvertise %s", name)
+        for service in self._services_to_advertise:
+            if service.name == name:
+                self._services_to_advertise.remove(service)
+                break
+        else:
+            _logger.warn("No advert found for %s", name)
+        _logger.debug("Services now: %s", self._services_to_advertise)
     
     def do_pause(self, started_at):
         _logger.debug("Pause")
@@ -451,8 +464,9 @@ def _stop_beacon():
         _beacon.join()
     _beacon = None
 
-def _rpc(action, *args):
-    _logger.debug("About to send rpc request %s with args %s", action, args)
+def _rpc(action, *args, **kwargs):
+    _logger.debug("About to send rpc request %s with args %s, kwargs %s", action, args, kwargs)
+    wait_for_s = kwargs.pop("wait_for_s", 5)
     with sockets.context.socket(zmq.REQ) as socket:
         #
         # To avoid problems when restarting a beacon not long after it's been
@@ -461,13 +475,16 @@ def _rpc(action, *args):
         #
         socket.connect("tcp://localhost:%s" % _Beacon.rpc_port)
         socket.send(_pack([action] + list(args)))
-        return _unpack(socket.recv())
+        reply = sockets._sockets._receive_with_timeout(socket, wait_for_s)
+        return _unpack(reply)
 
 def _pause():
     return _rpc("pause")
 
 def _resume():
     return _rpc("resume")
+
+_services_advertised = {}
 
 def advertise(name, address=None, fail_if_exists=False, ttl_s=config.ADVERT_TTL_S):
     """Advertise a name at an address
@@ -484,7 +501,31 @@ def advertise(name, address=None, fail_if_exists=False, ttl_s=config.ADVERT_TTL_
     :returns: the address given or constructed
     """
     _start_beacon()
-    return _rpc("advertise", name, address, fail_if_exists, ttl_s)
+    address = _rpc("advertise", name, address, fail_if_exists, ttl_s)
+    _services_advertised[name] = address
+    return address
+
+def _unadvertise_all():
+    """Remove all adverts
+    """
+    for name in _services_advertised:
+        try:
+            _unadvertise(name)
+        except core.SocketTimedOutError:
+            _logger.warn("Timed out trying to unadvertise")
+            break
+atexit.register(_unadvertise_all)
+
+def _unadvertise(name):
+    """Remove the advert for a name
+    
+    This is intended for internal use only at the moment. When a process
+    exits it can remove adverts for its services from the beacon running
+    on that machine. (Of course, if the beacon thread is part of of the
+    same service, all its adverts will cease).
+    """
+    _start_beacon()
+    return _rpc("unadvertise", name)
 
 def discover(name, wait_for_s=60):
     """Discover a service by name
@@ -529,16 +570,17 @@ def discover_all():
     _start_beacon()
     return _rpc("discover_all")
 
-def discover_group(group, exclude=None):
+def discover_group(group, separator="/", exclude=None):
     """Produce a list of all services and their addresses in a group
     
     A group is an optional form of namespace within the discovery mechanism.
-    If an advertised name has the form <group>/<name> it is deemed to
+    If an advertised name has the form <group><sep><name> it is deemed to
     belong to <group>. Note that the service's name is still the full
-    string <group>/<name>. The group concept is simply for discovery and
+    string <group><sep><name>. The group concept is simply for discovery and
     to assist differentiation, eg, in a classroom group.
     
     :param group: the name of a group prefix
+    :param separator: the separator character [/]
     :param exclude: an iterable of names to exclude (or None)
     
     :returns: a list of 2-tuples [(name, address), ...]
@@ -551,7 +593,7 @@ def discover_group(group, exclude=None):
     all_discovered = _rpc("discover_all")
     return [(name, address) 
         for (name, address) in all_discovered 
-        if name.startswith("%s/" % group)
+        if name.startswith("%s%s" % (group, separator))
         and name not in names_to_exclude
     ]
 
@@ -564,4 +606,11 @@ def reset_beacon():
     return _rpc("reset")
 
 if __name__ == '__main__':
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
+    _logger.addHandler(handler)
     _start_beacon()
+    _logger.info("Beacon started at %s", time.asctime())
+    while True:
+        time.sleep(1)
