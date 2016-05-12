@@ -120,6 +120,15 @@ def test_advertise_ttl(beacon):
     finally:
         nw0.discovery._resume()
 
+def test_unadvertise(beacon):
+    ttl_s = 2
+    service = uuid.uuid4().hex
+    address = nw0.advertise(service, ttl_s=ttl_s)
+    assert [service, address] in nw0.discover_all()
+    nw0.discovery._unadvertise(service)
+    time.sleep(1 + ttl_s)
+    assert [service, address] not in nw0.discover_all()
+
 def test_discover(beacon):
     service = uuid.uuid4().hex
     address = nw0.advertise(service)
@@ -159,3 +168,43 @@ def test_discover_group(beacon):
     address3 = nw0.advertise(service3)
     discovered_group = nw0.discover_group(group)
     assert set(discovered_group) == set([(service1, address1), (service2, address2)])
+
+def test_discover_group_with_different_separator(beacon):
+    group = uuid.uuid4().hex
+    service1 = "%s:%s" % (group, uuid.uuid4().hex)
+    service2 = "%s:%s" % (group, uuid.uuid4().hex)
+    service3 = "%s:%s" % (uuid.uuid4().hex, uuid.uuid4().hex)
+    address1 = nw0.advertise(service1)
+    address2 = nw0.advertise(service2)
+    address3 = nw0.advertise(service3)
+    discovered_group = nw0.discover_group(group, separator=":")
+    assert set(discovered_group) == set([(service1, address1), (service2, address2)])
+
+def test_rpc_with_timeout():
+    """Access to the local beacon is via an RPC mechanism using 
+    ZeroMQ REQ-REP sockets. If the beacon has stopped, this will block.
+    This is especially problematic when an attempt is being made to
+    unadvertise services via the atexit.register mechanism.
+    """
+    #
+    # Make sure the beacon is not running and attempt an RPC
+    # connection with a timeout
+    #
+    nw0.discovery._stop_beacon()
+    with pytest.raises(nw0.core.SocketTimedOutError):
+        nw0.discovery._rpc(uuid.uuid4().hex, wait_for_s=2)
+
+def _test_unadvertise_with_timeout():
+    """Adverts are unadvertised when a process exits (via atexit.register).
+    However, if the local beacon has already stopped, any attempt to send
+    it a message will block.
+    """
+    #
+    # Start a beacon on a random port and register an arbitrary
+    # service. We need to know neither the port nor the service;
+    # all we do is check unadvertising will succeed.
+    #
+    nw0.discovery._start_beacon(port=random.choice(nw0.config.DYNAMIC_PORTS))
+    nw0.advertise(uuid.uuid4().hex)
+    nw0.discovery._stop_beacon()
+    
