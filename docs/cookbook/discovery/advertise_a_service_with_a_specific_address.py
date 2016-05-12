@@ -1,5 +1,5 @@
 import networkzero as nw0
 
 ip_address = "192.0.2.1"
-address = nw0.advertise("myservice", ip_address)
+address = nw0.advertise("myservice2", ip_address)
 print("Service is at", address)
