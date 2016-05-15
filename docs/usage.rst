@@ -85,10 +85,14 @@ or a dictionary. Note that the restriction to built-in objects is recursive: any
 or dictionaries you send can themselves only contain built-in objects.
 
 Examples
-~~~~~~~~
+--------
 
 ..  toctree::
     :maxdepth: 2
     :glob:
     
-    cookbook/*
+    cookbook/simple-discovery
+    cookbook/simple-messaging
+    cookbook/advanced-discovery
+    cookbook/advanced-messaging
+    cookbook/complete-examples

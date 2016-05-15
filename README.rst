@@ -18,6 +18,8 @@ Make it easy for learning groups to use simple networking in Python
     out but not stable yet. TJG
 
     **5th May 2016** Closing in on freeze for 1.0
+    
+    **13th May 2016** Features freeze. Now improving documentation
 
 * Docs: http://networkzero.readthedocs.org/en/latest/
 
@@ -29,14 +31,8 @@ Make it easy for learning groups to use simple networking in Python
   * Perhaps use in London Python Dojo May 5th
   * Show to teachers at Twickenham coding evening 19th May
 
-* Tests: to run the tests, run tox
-
-At the time of writing, all tests pass on:
-
-* Windows 8
-* Debian Jessie
-* Raspbian Jessie
-* Mac OS/X 10.11
+* Tests: to run the tests, run tox. All tests are run on Travis (Linux & Apple)
+  and Appveyor (Windows)
 
 API
 ---
@@ -52,12 +48,16 @@ Discovery
 
 * [(name, address), ...] = discover_all()
 
+* [(name, address), ...] = discover_group(group_name, separator="/")
+
 Messaging
 ~~~~~~~~~
 
 * reply = send_message_to(address, message, wait_for_reply_s=FOREVER)
 
 * message = wait_for_message_from(address, [wait_for_s=FOREVER])
+
+* send_reply_to(address, reply)
 
 * send_news_to(address, news)
 
@@ -75,7 +75,7 @@ On computer (or process) A:
     address = nw0.advertise("hello")
     while True:
         name = nw0.wait_for_message_from(address)
-        nw0.send_message_to(address, "Hello, %s" % name)
+        nw0.send_reply_to(address, "Hello, %s" % name)
         
 On computer (or process) B and C and D...:
 

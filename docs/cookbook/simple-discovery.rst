@@ -5,7 +5,7 @@
 Using the discovery module
 ==========================
 
-The examples here all refer to the :mod:`discovery` module.
+The examples here all refer to the :mod:`networkzero.discovery` module.
 
 In the context of networkzero, an address is a string combining an
 IP address and a port, eg "192.0.2.1:12345". You can specify just
@@ -15,7 +15,7 @@ much control you want.
 Advertise a service
 -------------------
 
-.. literalinclude:: discovery/advertise_a_service.py
+.. literalinclude:: simple-discovery/advertise_a_service.py
    
 Discussion
 ~~~~~~~~~~
@@ -28,7 +28,7 @@ you can then use to send and receive messages.
 Advertise a service with a specific address
 -------------------------------------------
 
-.. literalinclude:: discovery/advertise_a_service_with_a_specific_address.py
+.. literalinclude:: simple-discovery/advertise_a_service_with_a_specific_address.py
 
 Discussion
 ~~~~~~~~~~
@@ -39,7 +39,7 @@ will be selected at random from the range of ports designated as dynamic.
 Advertise a service with a specific port
 ----------------------------------------
 
-.. literalinclude:: discovery/advertise_a_service_with_a_specific_port.py
+.. literalinclude:: simple-discovery/advertise_a_service_with_a_specific_port.py
 
 Discussion
 ~~~~~~~~~~
@@ -50,7 +50,7 @@ and a suitable IP address will be supplied by networkzero.
 Advertise a service with a wildcard address
 -------------------------------------------
 
-.. literalinclude:: discovery/advertise_a_service_with_a_wildcard_address.py
+.. literalinclude:: simple-discovery/advertise_a_service_with_a_wildcard_address.py
 
 Discussion
 ~~~~~~~~~~
@@ -62,10 +62,16 @@ but if it doesn't you can specify which of the networks you want to use.
 Note that this doesn't mean you have to specify the entire IP address, merely
 enough of it to distinguish one network from another.
 
-Discovering a service
----------------------
+Discover a service
+------------------
 
-.. literalinclude:: discovery/discover_a_service.py
+On machine A
+~~~~~~~~~~~~
+.. literalinclude:: simple-discovery/discover_a_service_a.py
+
+On machine B
+~~~~~~~~~~~~
+.. literalinclude:: simple-discovery/discover_a_service_b.py
    
 Discussion
 ~~~~~~~~~~
@@ -78,7 +84,17 @@ returned.
 Discover all services
 ---------------------
 
-.. literalinclude:: discovery/discover_all_services.py
+On machine A
+~~~~~~~~~~~~
+.. literalinclude:: simple-discovery/discover_all_services_a.py
+
+On machine B
+~~~~~~~~~~~~
+.. literalinclude:: simple-discovery/discover_all_services_b.py
+
+On machine C
+~~~~~~~~~~~~
+.. literalinclude:: simple-discovery/discover_all_services_c.py
 
 Discussion
 ~~~~~~~~~~
@@ -87,40 +103,3 @@ network. This can be used, for example, in a chat room to discover new
 members joining the room. Pairs of names and addresses are returned, suitable
 for converting into a Python dictionary.
 
-Discover a group of services
-----------------------------
-
-.. literalinclude:: discovery/discover_group.py
-
-Discussion
-~~~~~~~~~~
-By adopting a common convention, it is possible to group advertised services
-together. This could be used, as in this example, to identify all members of
-a particular chat session. Or -- in a classroom or club situation -- to have
-teams identify their own services so as not to confuse them with other team's
-services of the same name. 
-
-Use a different separator for a group of services
--------------------------------------------------
-
-.. literalinclude:: discovery/discover_group_colon.py
-
-Discussion
-~~~~~~~~~~
-Perhaps it's not convenient to use the "/" character to separate the group
-from the service name. You can use any character to separate the parts of
-the name. Then you specify that character when you call `discover_group`.
-
-Dynamically Discover Nodes
---------------------------
-
-.. literalinclude:: discovery/dynamically_discover_nodes.py
-
-Discussion
-~~~~~~~~~~
-A cluster is a group of computers working together. Each computer registers
-a service called "cluster/X" where "X" is the computer's name. If that
-machine stops running, its advert will time out and no longer be available.
-
-The computer which is co-ordinating the cluster checks every so often to
-see which computers have left the cluster and which have joined.

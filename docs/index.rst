@@ -14,6 +14,8 @@ NetworkZero
     
     **5th May 2016** Closing in on freeze for 1.0
 
+    **13th May 2016** Features freeze. Now improving documentation
+
 NetworkZero makes it easier to use Python to connect things together 
 across the. It's especially focused on the classroom 
 or club situation where short-lived programs need to discover 
@@ -47,17 +49,17 @@ Can you give me an example?
     address = nw0.advertise("hello")
     while True:
         name = nw0.wait_for_message_from(address)
-        nw0.send_message_to_address("Hello " + name)
+        nw0.send_reply_to(address, "Hello " + name)
 
 [Machine or Process B and C and D ...]::
 
     import networkzero as nw0
     
     hello = nw0.discover("hello")
-    nw0.send_message(hello, "World!")
-    print(nw0.wait_for_message_from(hello))
-    nw0.send_message(hello, "Tim")
-    print(nw0.wait_for_message_from(hello))
+    reply = nw0.send_message_to(hello, "World!")
+    print(reply)
+    reply = nw0.send_message_to(hello, "Tim")
+    print(reply)
 
 This runs a service, advertised under the name "hello"
 which will send back "Hello <name>" whenever <name> is sent to it.
@@ -68,7 +70,7 @@ Read More
 ---------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
    
    usage
    for-teachers
