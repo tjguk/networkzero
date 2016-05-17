@@ -37,7 +37,7 @@ def wait_for_message_from(address, wait_for_s=config.FOREVER, autoreply=False):
         sockets._sockets.send_reply_to(address, EMPTY)
     return message
 
-def send_reply_to(address, reply):
+def send_reply_to(address, reply=EMPTY):
     """Reply to a message previously received
     
     :param address: a nw0 address (eg from `nw0.advertise`)
