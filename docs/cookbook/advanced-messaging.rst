@@ -2,24 +2,27 @@
 .. highlight:: python
    :linenothreshold: 1
 
-Using the messenger module
-==========================
+Exchanging Messages: Advanced Usage
+===================================
 
 The examples here all refer to the :mod:`messenger` module.
 
-Send a message
---------------
+News from more than one source
+------------------------------
 
-Process A
+Process A, B, C and D
+~~~~~~~~~~~~~~~~~~~~~
+
+.. literalinclude:: advanced-messaging/news_from_multiple_sources_abcd.py
+
+Process E
 ~~~~~~~~~
 
-.. literalinclude:: messenger/send_a_message_a.py
-
-Process B
-~~~~~~~~~
-
-.. literalinclude:: messenger/send_a_message_b.py
+.. literalinclude:: advanced-messaging/news_from_multiple_sources_e.py
 
 Discussion
 ~~~~~~~~~~
-Blah, blah, sending a message, blah, blah
+A process can listen for news from more than one source. For example,
+if you have four movement sensors, one in each corner of a room, all
+ending their updates on the same channel, you can gather updates from
+all four at once.

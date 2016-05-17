@@ -1,12 +1,13 @@
 from __future__ import print_function
 import os, sys
+import fnmatch
 import subprocess
 import time
 
 my_filepath = os.path.abspath(sys.argv[0])
 my_dirpath = os.path.dirname(my_filepath)
 
-def process_one_folder(dirpath, filenames):
+def process_one_folder(dirpath, filenames, filename_pattern):
     #
     # Run all the processes in one folder in parallel as
     # some of them will depend on others (eg a request/response)
@@ -14,7 +15,10 @@ def process_one_folder(dirpath, filenames):
     processes = {}
     for filename in sorted(filenames):
         if not filename.endswith(".py"):
-            continue        
+            continue
+        if not fnmatch.fnmatch(filename, filename_pattern):
+            #~ print("%s does not match %s; skipping" % (filename, filename_pattern))
+            continue
         filepath = os.path.join(dirpath, filename)
         if filepath == my_filepath:
             continue
@@ -38,7 +42,7 @@ def process_one_folder(dirpath, filenames):
     for name, p in processes.items():
         print("  ", name, "=>", p.poll())
 
-def main():
+def main(filename_pattern="*"):
     #
     # Fire up a beacon and wait for it to start
     #
@@ -47,7 +51,7 @@ def main():
     try:
         for dirpath, dirnames, filenames in os.walk(my_dirpath):
             print(dirpath)
-            process_one_folder(dirpath, filenames)
+            process_one_folder(dirpath, filenames, filename_pattern)
             print("\n\n")
     finally:
         beacon.kill()

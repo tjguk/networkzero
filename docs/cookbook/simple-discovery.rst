@@ -2,8 +2,8 @@
 .. highlight:: python
    :linenothreshold: 1
 
-Using the discovery module
-==========================
+Advertise & Discover Services
+=============================
 
 The examples here all refer to the :mod:`networkzero.discovery` module.
 

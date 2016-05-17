@@ -1,6 +1,6 @@
 ..  module:: networkzero
 
-Examples
+Cookbook
 ========
 
 ..  toctree::

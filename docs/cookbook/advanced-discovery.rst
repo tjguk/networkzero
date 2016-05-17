@@ -2,8 +2,8 @@
 .. highlight:: python
    :linenothreshold: 1
 
-Advanced uses of discovery
-==========================
+Advertise & Discover Services: Advanced Usage
+=============================================
 
 The examples here all refer to the :mod:`networkzero.discovery` module.
 
