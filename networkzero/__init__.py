@@ -62,7 +62,8 @@ from .core import (
     SocketTimedOutError, InvalidAddressError,
     SocketInterruptedError, DifferentThreadError,
     
-    address, action_and_params
+    address, action_and_params,
+    string_to_bytes, bytes_to_string
 )
 from .discovery import advertise, discover, discover_all, discover_group
 from .messenger import (

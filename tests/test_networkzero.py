@@ -11,6 +11,7 @@ def test_import_all_relevant_names():
         "send_message_to", "wait_for_message_from", "send_reply_to", 
         "send_news_to", "wait_for_news_from",
         "action_and_params", "address",
+        "bytes_to_string", "string_to_bytes",
         "NetworkZeroError", "SocketAlreadyExistsError",
         "SocketTimedOutError", "InvalidAddressError",
         "SocketInterruptedError", "DifferentThreadError",
