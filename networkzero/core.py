@@ -291,3 +291,19 @@ def action_and_params(commandline):
     """
     components = shlex.split(commandline)
     return components[0], components[1:]
+
+def bytes_to_string(data):
+    """Take bytes and return a base64-encoded unicode string equivalent
+    
+    :param data: a bytes object
+    :returns: base64-encoded unicode object
+    """
+    return base64.b64encode(data).decode("ascii")
+
+def string_to_bytes(data):
+    """Take a base64-encoded unicode string and return the equivalent bytes
+    
+    :param data: a base64-encoded unicode object
+    :returns: the equivalent bytes
+    """
+    return base64.b64decode(data.encode("ascii"))
