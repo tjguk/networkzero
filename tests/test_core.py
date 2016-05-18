@@ -1,6 +1,11 @@
 import base64
 import re
 import uuid
+
+try:
+    unicode
+except NameError:
+    unicode = str
     
 import pytest
 
@@ -96,7 +101,7 @@ class TestBytesToString(object):
 
     def test_bytes_to_string(self):
         s = nw0.core.bytes_to_string(self.bytes)
-        assert isinstance(s, str)
+        assert isinstance(s, unicode)
         assert s == self.string
     
     def test_reflection_from_bytes(self):
