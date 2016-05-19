@@ -120,6 +120,9 @@ class _Service(object):
             time.ctime(self.advertise_at), time.ctime(self.expires_at)
         )
     
+    def __repr__(self):
+        return "<%s: %s>" % (self.__class__.__name__, str(self))
+    
     def __eq__(self, other):
         return self.name == other.name
 
@@ -606,8 +609,13 @@ def reset_beacon():
     return _rpc("reset")
 
 if __name__ == '__main__':
+    params = [arg.lower() for arg in sys.argv]
+    if "--debug" in params:
+        logging_level = logging.DEBUG
+    else:
+        logging_level = logging.INFO
     handler = logging.StreamHandler()
-    handler.setLevel(logging.INFO)
+    handler.setLevel(logging_level)
     handler.setFormatter(logging.Formatter("%(levelname)s - %(message)s"))
     _logger.addHandler(handler)
     _start_beacon()
