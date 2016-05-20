@@ -6,30 +6,9 @@ NetworkZero
 
 Make it easy for learning groups to use simple networking in Python
 
-..  note::
-
-    **10th April 2016** This is under heavy development at the moment; things
-    can and will change, possibly quite radically, over the next few days 
-    and weeks. Please do take it for a spin, but don't base any long-term
-    plans on the current API. TJG
-
-    **21st April 2016** Still a lot of development going on. APIs changing
-    and approaches shifting slightly. As before, please feel free to try
-    out but not stable yet. TJG
-
-    **5th May 2016** Closing in on freeze for 1.0
-    
-    **13th May 2016** Features freeze. Now improving documentation
-
 * Docs: http://networkzero.readthedocs.org/en/latest/
 
 * Development: https://github.com/tjguk/networkzero
-
-* Rough roadmap:
-
-  * Stable 1.0 by 30th April
-  * Perhaps use in London Python Dojo May 5th
-  * Show to teachers at Twickenham coding evening 19th May
 
 * Tests: to run the tests, run tox. All tests are run on Travis (Linux & Apple)
   and Appveyor (Windows)
