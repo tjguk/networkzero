@@ -287,6 +287,7 @@ class _Beacon(threading.Thread):
             return
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
+        _logger.debug("Broadcast message received: %r", message)
         service_name, service_address, ttl_s = _unpack(message)
         service = _Service(service_name, service_address, ttl_s)
         self._services_found[service_name] = service
@@ -295,6 +296,7 @@ class _Beacon(threading.Thread):
         if self._services_to_advertise:
             next_service = self._services_to_advertise[0]
             if next_service.advertise_at < time.time():
+                _logger.debug("%s due to advertise at %s", next_service.name, time.ctime(next_service.advertise_at))
                 message = _pack([next_service.name, next_service.address, next_service.ttl_s])
                 self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
                 next_service.advertise_at = time.time() + self.time_between_broadcasts_s
