@@ -13,7 +13,7 @@ Introduction
 The messenger module offers two ways to send and/or receive messages across
 the network:
 
-    * Messages: :func:`send_message_to` / :func:`wait_for_message_from`
+    * Messages: :func:`send_message_to` / :func:`wait_for_message_from` / :func:`send_reply_to`
     * News: :func:`send_news_to` / :func:`wait_for_news_from`
 
 Functions

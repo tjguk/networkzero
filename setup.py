@@ -15,7 +15,7 @@ with codecs.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     name='networkzero',
 
-    version='0.1',
+    version='1.0b1',
 
     description='Making networking simple for teachers',
     long_description=long_description,

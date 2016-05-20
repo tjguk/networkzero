@@ -38,7 +38,7 @@ Questions to be answered
   all sorts of complications in the code especially when one of them is removed.
   Although the implementation as I write allows for this, I think on mature 
   reflection that it is best left out of a simple package like this.
-  [*UPDATE*: multiple registration has been removed]
+  [**UPDATE**: multiple registration has been removed]
   
   If it were needed, eg in a many-to-many chat situation, it could be implemented
   fairly easily on top of networkzero by defining a "service:<GUID>" naming
@@ -59,6 +59,11 @@ Questions to be answered
   3) An existing service attempts to unadvertise itself, typically on shutdown. This
      will fail, but that failure can be mitigated by having the unadvertise code run
      with a timeout and simply warn if there's no response.
+
+  [**UPDATE** Somewhat relevant: time-to-live (TTL) functionality has been added to adverts.
+  This means that, if a beacon shuts down, its adverts will expire fairly soon and can be
+  replaced by later adverts for the same service. Also, an attempt is made to unadvertise
+  when a process shuts down.]
 
 * We have commands as well as messages. Do we need both?
 
@@ -96,11 +101,15 @@ Questions to be answered
   only one IP address at a time. My slight preference is for (iii) as I see
   it being fairly easy to implement and fairly transparent.
   
-  [**UPDATE**: We're now using the x-platform netifaces module as an external
+  [**UPDATE**: We're now using the cross-platform netifaces module as an external
   dependency to determine all local IP4 addresses. We're also allowing
   the :func:`networkzero.address` function to take a wildcard IP so that, for
   example, you could specify that you want a command in the 192.0.2.*
   network without knowing exactly which one you're currently bound to.]
+  
+  [**UPDATE 2**: accepted a PR from Sandy Wilson to choose the default gateway if
+  possible. In combination, we seem to have solved the most common problems around
+  selecting the best address.]
 
 * Exceptions or returning None/sentinel?
 
@@ -144,7 +153,8 @@ Questions to be answered
   [**UPDATE**: we're now using JSON to avoid the issue with marshalled
   data not working across different Python versions. This does mean 
   that bytestrings cannot be used directly (nor any other type which
-  doesn't support JSON serialisation)].
+  doesn't support JSON serialisation). For now we've provided a pair
+  of bytes<->string converters; later, probably detect this automatically].
   
   pickle has well-known security implications. There are pickle-alikes
   (dill, serpent) in the Python space which do a better job, but they're

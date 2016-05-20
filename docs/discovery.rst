@@ -29,3 +29,4 @@ Functions
 ..  autofunction:: advertise
 ..  autofunction:: discover
 ..  autofunction:: discover_all
+..  autofunction:: discover_group

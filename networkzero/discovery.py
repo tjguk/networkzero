@@ -503,6 +503,7 @@ def advertise(name, address=None, fail_if_exists=False, ttl_s=config.ADVERT_TTL_
     :param name: any text
     :param address: either "ip:port" or None
     :param fail_if_exists: fail if this name is already registered?
+    :param ttl_s: the advert will persist for this many seconds other beacons
     :returns: the address given or constructed
     """
     _start_beacon()

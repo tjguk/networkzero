@@ -1,21 +1,6 @@
 NetworkZero
 ===========
 
-..  note::
-
-    **10th April 2016** This is under heavy development at the moment; things
-    can and will change, possibly quite radically, over the next few days 
-    and weeks. Please do take it for a spin, but don't base any long-term
-    plans on the current API. TJG
-
-    **21st April 2016** Still a lot of development going on. APIs changing
-    and approaches shifting slightly. As before, please feel free to try
-    out but not stable yet. TJG
-    
-    **5th May 2016** Closing in on freeze for 1.0
-
-    **13th May 2016** Features freeze. Now improving documentation
-
 NetworkZero makes it easier to use Python to connect things together 
 across the. It's especially focused on the classroom 
 or club situation where short-lived programs need to discover 
@@ -74,5 +59,4 @@ Read More
    
    usage
    for-teachers
-   for-students
    for-developers
