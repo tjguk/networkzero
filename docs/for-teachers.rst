@@ -29,6 +29,9 @@ the benefits of using NetworkZero.
 Using a Network
 ~~~~~~~~~~~~~~~
 
+*   Some kinds of programs, such as instant chat, are inherently network-bound.
+    Other programs can grow an extra dimension by adding network capabilities.
+
 *   Network-based programs are more loosely coupled. This is generally considered
     A Good Thing.
     
@@ -40,7 +43,7 @@ Using NetworkZero
 ~~~~~~~~~~~~~~~~~
 
 *   NetworkZero makes it easier to advertise and discover services running on the
-    network on the same or different machines. However, the discovery is always
+    network on the same or different machines. However, the discovery is 
     merely a shortcut: it's always possible to pass a literal ip:port address.
 
 *   Two simple means of sending and receiving data, each with its own
