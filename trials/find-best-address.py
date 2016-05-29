@@ -14,5 +14,15 @@ def get_ip4_broadcast_addresses():
     
     return broadcast_addresses
 
+def dump_addresses():
+    for interface in netifaces.interfaces():
+        print(interface)
+        ifaddresses = netifaces.ifaddresses(interface)
+        for family in ifaddresses:
+            print("  ", netifaces.address_families[family])
+            address_info = ifaddresses[family]
+            for info in address_info:
+                print("    ", info)
+
 if __name__ == '__main__':
-    print(get_ip4_broadcast_addresses())
+    print(dump_addresses())
