@@ -13,7 +13,7 @@ def run(message=""):
     s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     
     while True:
-        s.sendto(bmessage, ('255.255.255.255', 53005))
+        s.sendto(bmessage, ('192.168.1.255', 53005))
         time.sleep(1)
 
 if __name__ == '__main__':
