@@ -115,6 +115,19 @@ def is_valid_address(address, port_range=range(65536)):
     ip, port = split_address(address)
     return is_valid_ip_pattern(ip) and is_valid_port(port, port_range)
 
+def _find_ip4_broadcast_addresses():
+    """Yield each IP4 broadcast address, and the all-broadcast
+    """
+    yield "255.255.255.255"
+    for interface in netifaces.interfaces():
+        ifaddresses = netifaces.ifaddresses(interface)
+        for family in ifaddresses:
+            if family == netifaces.AF_INET:
+                address_info = ifaddresses[family]
+                for info in address_info:
+                    if "broadcast" in info:
+                        yield info['broadcast']
+
 _ip4_addresses = None
 def _find_ip4_addresses():
     """Find all the IP4 addresses currently bound to interfaces

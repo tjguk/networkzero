@@ -181,6 +181,7 @@ class _Beacon(threading.Thread):
         #
         # Set the socket up to broadcast datagrams over UDP
         #
+        self.broadcast_addresses = set(core._find_ip4_broadcast_addresses())
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.socket.bind(("", self.beacon_port))
@@ -298,7 +299,9 @@ class _Beacon(threading.Thread):
             if next_service.advertise_at < time.time():
                 _logger.debug("%s due to advertise at %s", next_service.name, time.ctime(next_service.advertise_at))
                 message = _pack([next_service.name, next_service.address, next_service.ttl_s])
-                self.socket.sendto(message, 0, ("255.255.255.255", self.beacon_port))
+                for broadcast_address in self.broadcast_addresses:
+                    _logger.debug("Advertising on %s", broadcast_address)
+                    self.socket.sendto(message, 0, (broadcast_address, self.beacon_port))
                 next_service.advertise_at = time.time() + self.time_between_broadcasts_s
                 self._services_to_advertise.rotate(-1)
 
