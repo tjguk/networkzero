@@ -43,8 +43,8 @@ Process B
 Discussion
 ~~~~~~~~~~
 
-Sometimes the data you want to send isn't text or numbers: it's binary data
--- bytes -- such as the bytes which make up an image or a sound file. To send that via
+Sometimes the data you want to send isn't text or numbers: it's binary
+data---bytes---such as the bytes which make up an image or a sound file. To send that via
 networkzero you have to treat it specially: at the sending end, you convert
 it to a string; and at the receiving end, you convert it back into bytes.
 

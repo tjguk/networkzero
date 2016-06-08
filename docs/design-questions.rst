@@ -6,9 +6,9 @@ Questions to be answered
   There's nothing in the design which requires ZeroMQ. The API contract
   hides the implementation. However ZeroMQ does what is needed and is 
   available cross-platform and cross-language and with Python bindings.
-  
-  (Just came across http://nanomsg.org/index.html which is a -- possibly
-  unmaintained -- fork of ZeroMQ with a particular eye to Posix-compliance & 
+
+  (Just came across http://nanomsg.org/index.html which is a---possibly
+  unmaintained---fork of ZeroMQ with a particular eye to Posix-compliance &
   open licensing).
   
   A couple more factors have been pointed out which tell against using
@@ -26,10 +26,10 @@ Questions to be answered
   solution on a given platform. But cross-platform support is spotty, and
   it's more geared towards, eg, printer discovery and machine discovery. 
   What we're after is a little more ad hoc and transient.
-  
-  The discovery API is simply advertise / discover. If it turns out that 
+
+  The discovery API is simply advertise / discover. If it turns out that
   those can be implemented more simply and/or robustly on top of a zeroconf
-  service -- or some other existing library -- then we can switch to that
+  service---or some other existing library---then we can switch to that
   under the covers.
 
 * Do we want to allow multiple services to register under the same name?

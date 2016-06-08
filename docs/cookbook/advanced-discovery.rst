@@ -27,7 +27,7 @@ Discussion
 ~~~~~~~~~~
 By adopting a common convention, it is possible to group advertised services
 together. This could be used, as in this example, to identify all members of
-a particular chat session. Or -- in a classroom or club situation -- to have
+a particular chat session. Or---in a classroom or club situation---to have
 teams identify their own services so as not to confuse them with other team's
 services of the same name. 
 

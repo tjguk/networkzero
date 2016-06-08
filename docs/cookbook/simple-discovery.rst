@@ -21,7 +21,7 @@ Discussion
 ~~~~~~~~~~
 If you are running a service in one process, advertising it will enable
 other processes and machines to know what address to connect to. This
-example shows the minimum you need supply -- just a name -- to advertise
+example shows the minimum you need supply---just a name---to advertise
 a service. If you haven't chosen an address, one will be returned which
 you can then use to send and receive messages.
 
