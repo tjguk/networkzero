@@ -33,5 +33,5 @@ Design Guidelines
   so either "import networkzero as nw0" or "from networkzero import \*"
   will provide the whole of the public API.
 
-* Underscore prefixes will be used to ensure that only the public API 
-  be visible via help(). This reduces visual clutter.
+* Underscore prefixes will be used to ensure that only the public API
+  be visible via `help()`. This reduces visual clutter.

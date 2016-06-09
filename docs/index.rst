@@ -1,10 +1,10 @@
 NetworkZero
 ===========
 
-NetworkZero makes it easier to use Python to connect things together 
-across the. It's especially focused on the classroom 
-or club situation where short-lived programs need to discover 
-each other on the same or a different computer without having to 
+NetworkZero makes it easier to use Python to connect things together
+across the internet. It's especially focused on the classroom
+or club situation where short-lived programs need to discover
+each other on the same or a different computer without having to
 know IP addresses or hostnames.
 
 It offers two main services:
