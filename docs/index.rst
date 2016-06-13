@@ -7,7 +7,11 @@ or club situation where short-lived programs need to discover
 each other on the same or a different computer without having to
 know IP addresses or hostnames.
 
-It offers two main services:
+It runs on Python 2.7 and Python 3.3+ and should run anywhere that 
+Python runs. In particular, it's tested automatically on Windows,
+Mac and Linux, and is used on Raspberry Pi.
+
+NetworkZero offers two main services:
 
     * Discovering short-lived and ad hoc programs
     * Sending simple Python objects between programs
