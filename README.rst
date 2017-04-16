@@ -13,6 +13,8 @@ Make it easy for learning groups to use simple networking in Python
 * Tests: to run the tests, run tox. All tests are run on Travis (Linux & Apple)
   and Appveyor (Windows)
 
+* Tests: to run the tests, run tox
+
 API
 ---
 
