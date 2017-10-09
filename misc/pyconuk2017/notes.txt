@@ -1,0 +1,61 @@
+* Two years the club I help to run entered PiWars [trojan horse robot]
+
+* We decided to remote control the robot via a controller connected to a laptop over WiFi [SNES controller connected to laptop]
+
+* We had to faff around setting the Pi inside the robot as an AP with a fixed IP [image of https://learn.adafruit.com/setting-up-a-raspberry-pi-as-a-wifi-access-point?view=all]
+
+* But it worked... although when developing the controller code talking to localhost on my laptop I needed to mess around with the addresses / ports [two processes on one laptop / .ini file]
+
+* I'd always wanted an excuse to use ZeroMQ... so we did that, with a very thin wrapper of my own to make it easier for the lads at the club [C:\Users\tim\work-in-progress\westpark.github\robotics\robot\robot.py on RVW]
+
+* Then, last year, we decided to do a simple activity involving three Raspberry Pis talking across the network: one controlling to a disc spinning on a wheel and sensing the Nerf dart hits on two sensor flaps; one starting and stopping the turntable; and the third receiving the scores and showing the scoreboard [no picture because all lost when my phone died]
+
+* We had three teams running over three weeks, with a one-hour session each week. I repurposed the zmq wrapper from the robot and gave the RPis static addresses. But each time the lads came in, we ended up with different addresses and so on, and there was a lot of "type *these* numbers in instead of *those* numbers" going on. [picture of confused network setup]
+
+* So I thought: there are two things we need to do here which are particular to this kind of club situation -- and which would be similar in a CoderDojo or a classroom. [picture of club/classroom IT]
+
+* 1) have a simple way of discovering the other machine you're talking to; [beacon]
+
+* and 2) have a straightforward pattern of sending messages and perhaps receiving answers. [messaging]
+
+* and, ideally, have these work in a robust way cross-platform with at least Windows, Mac OS/X, Linux/RPi [3 x OS logos]
+
+* Neither of these is a blindingly new problem; and the second already has some reasonable solutions -- including ZeroMQ itself, or even native sockets -- depending on how much pain you're prepared to put up with especially as you go cross-platform. But I'm focusing on the particular constraints of a tight timeframe and relatively inexperienced -- and probably young -- learners.
+
+* So I created NetworkZero [networkzero readthedocs page]
+
+* The "Zero" suffix is in relation to the already existing PyGame Zero and GPIOZero (and there have been some more since including GUIZero). The idea is to make Python packages which are built on powerful libraries but which provide an easier entry point for beginners, typically by avoiding some noisy boilerplate which clutters what would otherwise be simple code. [logos/headings for PyGame Zero, GPIO Zero]
+
+* How do you use networkzero [nw0]? In its simplest form, you obtain an address by advertising the name of a service and then you listen on that address for requests which you then act on and reply. Someone wanting to talk to your program will obtain an address by searching for the name of the service and will send a request to that address and receive a reply. [example code]
+
+* And that's it. It actually does more than this, but this is the heart of networkzero: simple network code round which you can create a standalone program, or which you can use to sprinkle some network glitter on top of an existing project. [image of magic wand / network icons]
+
+* What are the benefits? [smiley face]
+    - It's deliberately straightforward to use
+    - It works unchanged across all major platforms: Windows, Mac OS/X, Linux/RPi [logos of platforms]
+    - It works on Python 2.7 and 3.3+
+    - You can send and receive any builtin Python type, not just strings
+    - As well as request-reply there's also a publish-subscribe mode (eg for data capture)
+    - The discovery mechanism works very hard to cope with restarted processes, odd network configurations, platform differences etc.
+    - It is threadsafe, which essentially means you can integrate it with GPIOZero callbacks [GPIOZero logo]
+    - It's thoroughly tested, with new changes tested across all supported platforms via Appveyor and Travis (thanks, Tom Viner!)
+
+* What are the drawbacks? [sad face]
+    - It currently has hard dependencies on zeromq and netifaces
+    - It's a little further away from basic socket programming so takes away from the learning experience
+    - It's still possible to meet corner cases where it hangs etc.
+
+* Why should I use networkzero? (I'm assuming you're an educator of some sort because that's who the package is aimed at). Two different questions, not unrelated: why should I use networking at all? if I do, why should I use networkzero as opposed to rolling my own socket code?
+
+* Why networking at all? Because networking is an integral part of how computers are used nowadays [internet of things]
+
+* -- and it can add an extra layer of interest to an otherwise simple package. [kid looking wowed]
+
+* Why networkzero? Because it should make it easy for you to add networking without wasting a lot of time on some of the underlying issues: what address the machine has; whether you're blocking on a receive or a send; socket timeouts and orphaned sockets when processes crash out. [some networkzero code]
+
+* What challenges did you face / are you still facing in its development? [picture of climbing a rockface]
+
+    - BT DNS redirect!
+    - socket lingering on different platforms
+    - in-out-in-out on the messaging functionality (did you hear what happened when the chap dies who invented hokey-cokey? They were putting him into the coffin and they got the left leg in and it all went horribly wrong...)
+    - Using marshal/json/strings
