@@ -2,50 +2,37 @@ import os, sys
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+import networkzero as nw0
+
 """Screen display containing a panel for an accompanying image; a large
 box for descriptive text; a smaller box for inventory, strength & other
 attributes; and a line for entering commands
 """
 
-class Adventure(QtWidgets.QWidget):
+class Chatter(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
-        super(Adventure, self).__init__(parent)
-
-        #
-        # Top-half of the
-        #
-        self.image_panel = QtWidgets.QLabel()
-        self.image_panel.setAlignment(QtCore.Qt.AlignCenter)
-        self.image = QtGui.QPixmap("image.jpg")
-        self.image_panel.setPixmap(self.image)
+        super(Chatter, self).__init__(parent)
 
         self.text_panel = QtWidgets.QTextEdit()
         self.text_panel.setReadOnly(True)
-        self.text_panel.setTextBackgroundColor(QtGui.QColor("blue"))
-        self.text_panel.setHtml("""<h1>Hello, World!</h1>
-
-        <p>You are in a spacious ballroom with the sound of music playing all around you.</p>
-        """)
-
-        self.data_panel = QtWidgets.QTextEdit()
-        self.data_panel.setReadOnly(True)
 
         self.input = QtWidgets.QLineEdit()
+        self.input.editingFinished.connect(self.input_changed)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.image_panel, 1)
-        hlayout = QtWidgets.QHBoxLayout()
-        hlayout.addWidget(self.text_panel, 3)
-        hlayout.addWidget(self.data_panel, 1)
-        layout.addLayout(hlayout, 1)
-        layout.addWidget(self.input)
+        layout.addWidget(self.text_panel, 3)
+        layout.addWidget(self.input, 1)
 
         self.setLayout(layout)
-        self.setWindowTitle("Westpark Adventure")
+        self.setWindowTitle("Chatter")
+
+    def input_changed(self):
+        self.text_panel.setPlainText(self.text_panel.toPlainText() + "\n" + self.input.text())
+        self.input.clear()
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
-    Adventure = Adventure()
-    Adventure.show()
+    Chatter = Chatter()
+    Chatter.show()
     sys.exit(app.exec_())
