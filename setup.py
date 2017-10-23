@@ -47,5 +47,5 @@ setup(
 
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
 
-    install_requires=['pyzmq', 'netifaces'],
+    #~ install_requires=['pyzmq', 'netifaces'],
 )
