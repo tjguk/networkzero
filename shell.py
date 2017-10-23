@@ -1,5 +1,4 @@
 #!python3
-import zmq
 import networkzero as nw0
 
 import logging
