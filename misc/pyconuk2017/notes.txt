@@ -34,6 +34,30 @@
 
 18) Live Demo!
 
+19) What are its strengths?
+
+    a) Very straightforward to use
+    b) Works unchanged on Python 2.7 & 3.3+ and on Windows, Mac, Linux / RPi
+    c) Send & receive any built-in type, not just strings
+    d) Request / Reply + Publish / Subscribe
+    e) Designed to be fairly robust in the face of odd network setups, frequent stop/start etc.
+    f) Threadsafe, which  means you can integrate with GPIOZero callbacks
+    g) Fully tested with new changes tested across all platforms (h/t Tom Viner)
+    h) Can use either component (discovery / messaging) independently but work well together
+
+20) What are its weaknesses?
+
+    a) Hard dependencies on ZeroMQ & netifaces (both good & bad)
+    b) It's a little further away from basic socket programming so takes away from the learning experience
+    c) Still some corner cases where it hangs etc.
+
+21) Particular challenges while creating the library
+
+    a) BT DNS redirect! [Trying to resolve a hostname, BT internet succeeds but goes its own page!]
+    b) Sockets on different platforms (lingering, timeouts, broadcast addresses etc.)
+    c) in-out-in-out on the messaging functionality (did you hear what happened when the chap died who invented the hokey-cokey? They were putting him into the coffin and they got the left leg in and it all went horribly wrong...)
+    d) Marshal vs JSON vs whatever...
+
 
 * What are the benefits? [smiley face]
     - It's deliberately straightforward to use
@@ -62,5 +86,5 @@
 
     - BT DNS redirect!
     - socket lingering on different platforms
-    - in-out-in-out on the messaging functionality (did you hear what happened when the chap dies who invented hokey-cokey? They were putting him into the coffin and they got the left leg in and it all went horribly wrong...)
+    -
     - Using marshal/json/strings
