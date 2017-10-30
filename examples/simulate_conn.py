@@ -38,31 +38,23 @@ def find_usable_addresses(interface):
                 yield address_string
 
 
-#def find_rfc1918(list_of_addresses):
-#    valid_interfaces = valid_addresses(list_of_interfaces)
-#    return [interface['addr'] for interface in valid_interfaces]
-
-
-def start_server(address):
-    address = nw0.advertise("hello", address)
+def start_server(address, service_name='hello'):
+    '''
+    '''
+    address = nw0.advertise(service_name, address)
     while True:
         name = nw0.wait_for_message_from(address)
         nw0.send_reply_to(address, "Hello " + name)
 
-'''
-address = nw0.advertise("hello", "10.183.204.55")
-print(local_ints)
-sys.exit(255)
-while True:
-    name = nw0.wait_for_message_from(address)
-    nw0.send_reply_to(address, "Hello " + name)
-'''
 
 def main():
     local_i = available_addresses()
-    print(local_i)
-    server_address = (list(find_usable_addresses(local_i)))
-    start_server(server_address[0])
+    #print(local_i)
+    server_address = list(find_usable_addresses(local_i))
+    try:
+        start_server(server_address[0])
+    except IndexError:
+        print("Couldn't find any valid RFC 1918 addresses to bind server to")
 
 if __name__ == "__main__":
     main()
