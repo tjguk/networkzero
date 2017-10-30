@@ -13,7 +13,6 @@ except ImportError:
     from . import _netifaces as netifaces
 
 from . import config
-from . import _ip4
 
 def get_logger(name):
     #
@@ -40,25 +39,25 @@ _logger = get_logger(__name__)
 #
 # Common exceptions
 #
-class NetworkZeroError(Exception): 
+class NetworkZeroError(Exception):
     pass
 
-class SocketAlreadyExistsError(NetworkZeroError): 
+class SocketAlreadyExistsError(NetworkZeroError):
     pass
 
 class SocketTimedOutError(NetworkZeroError):
-    
+
     def __init__(self, n_seconds):
         self.n_seconds = n_seconds
-    
+
     def __str__(self):
         return "Gave up waiting after %s seconds; this connection is now unusable" % self.n_seconds
 
 class SocketInterruptedError(NetworkZeroError):
-    
+
     def __init__(self, after_n_seconds):
         self.after_n_seconds = after_n_seconds
-    
+
     def __str__(self):
         return "Interrupted after %s seconds; this connection is now unusable" % self.after_n_seconds
 
@@ -69,7 +68,7 @@ class NoAddressFoundError(AddressError):
     pass
 
 class InvalidAddressError(NetworkZeroError):
-    
+
     def __init__(self, address, errno=None):
         self.address = address
         self.errno = errno
@@ -92,7 +91,7 @@ PORT_POOL = list(config.DYNAMIC_PORTS)
 def split_address(address):
     if ":" in address:
         ip, _, port = address.partition(":")
-    else:   
+    else:
         if address.isdigit():
             ip, port = "", address
         else:
@@ -100,7 +99,7 @@ def split_address(address):
     return ip, port
 
 def is_valid_ip_pattern(ip):
-    """Check whether a string matches the outline of an IPv4 address, 
+    """Check whether a string matches the outline of an IPv4 address,
        allowing "*"  as a wildcard"""
     ip = ip.replace('*', '1')
     try:
@@ -157,7 +156,7 @@ def _find_ip4_addresses():
     _ip4_addresses.remove(default_interface_address)
     _ip4_addresses.insert(0, default_interface_address)
 
-    return _ip4_addresses    
+    return _ip4_addresses
 
 _ip4 = None
 _prefer = None
@@ -185,7 +184,7 @@ def _find_ip4(prefer=None):
             # a preference
             #
             return n + 1, octets
-    
+
     ip4_addresses = _find_ip4_addresses()
     #
     # Pick an address allowing for user preference if stated
@@ -203,27 +202,27 @@ def _find_ip4(prefer=None):
             raise NoAddressFoundError("No address matches any of: %s" % ", ".join(prefer))
         else:
             _ip4 = ip4
-    
-    return _ip4 
+
+    return _ip4
 
 def address(address=None):
     """Convert one of a number of inputs into a valid ip:port string.
-    
+
     Elements which are not provided are filled in as follows:
-        
-        * IP Address: the system is asked for the set of IP addresses associated 
+
+        * IP Address: the system is asked for the set of IP addresses associated
           with the machine and the first one is used, preferring those matching
           `address` if it is a wildcard.
-        * Port number: a random port is selected from the pool of dynamically-available 
+        * Port number: a random port is selected from the pool of dynamically-available
           port numbers.
-      
+
     This means you can pass any of: nothing; a hostname; an IP address; an IP address with wildcards; a port number
-    
+
     If an IP address is supplied but is invalid, an InvalidAddressError
     exception is raised.
-    
+
     :param address: (optional) Any of: an IP address, a port number, or both
-    
+
     :returns: a valid ip:port string for this machine
     """
     address = str(address or "").strip()
@@ -233,7 +232,7 @@ def address(address=None):
     # or at a port and leave the other one blank
     #
     host_or_ip, port = split_address(address)
-    
+
     #
     # If the port has been supplied, make sure it's numeric and that it's a valid
     # port number. If it hasn't been supplied, remove a random one from the pool
@@ -251,11 +250,11 @@ def address(address=None):
     else:
         random.shuffle(PORT_POOL)
         port = PORT_POOL.pop()
-    
+
     #
     # The address part could be an IP address (optionally including
-    # wildcards to indicate a preference) or a hostname or nothing. 
-    # If it's a hostname we attempt to resolve it to an IP address. 
+    # wildcards to indicate a preference) or a hostname or nothing.
+    # If it's a hostname we attempt to resolve it to an IP address.
     # It it's nothing or a wildcard we query the system for a matching IP address.
     #
     if (not host_or_ip) or is_valid_ip_pattern(host_or_ip):
@@ -267,7 +266,7 @@ def address(address=None):
         prefer = None
         if "*" in host_or_ip:
             host_or_ip, prefer = None, [host_or_ip]
-    
+
         #
         # If no IP (or only a wildcard) is specified, query the system for valid
         # addresses, preferring those which match the wildcard. NB if the preference
@@ -299,12 +298,12 @@ def address(address=None):
             #
             if ip == "92.242.132.15":
                 raise InvalidAddressError(host_or_ip, 0)
-    
+
     return "%s:%s" % (ip, port)
 
 def action_and_params(commandline):
     """Treat a command line as an action followed by parameter
-    
+
     :param commandline: a string containing at least an action
     :returns: action, [param1, param2, ...]
     """
@@ -313,7 +312,7 @@ def action_and_params(commandline):
 
 def bytes_to_string(data):
     """Take bytes and return a base64-encoded unicode string equivalent
-    
+
     :param data: a bytes object
     :returns: base64-encoded unicode object
     """
@@ -321,7 +320,7 @@ def bytes_to_string(data):
 
 def string_to_bytes(data):
     """Take a base64-encoded unicode string and return the equivalent bytes
-    
+
     :param data: a base64-encoded unicode object
     :returns: the equivalent bytes
     """
