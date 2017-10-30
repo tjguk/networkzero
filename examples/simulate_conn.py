@@ -10,24 +10,37 @@ Use the netifaces method and select the RFC1918 IPv4 address assigned to an inte
 The idea is to simplify troubleshooting.
 '''
 
-def available_ints():
+def available_addresses():
     '''Use netifaces to create a list of interfaces and their properties.
     '''
+    v4_addresses = []
     local_ints = netifaces.interfaces()
-    return [netifaces.ifaddress(interface) for interface in local_ints] 
+    local_int_addresses = [netifaces.ifaddresses(interface) for interface in local_ints]
+    for interface in local_int_addresses:
+        try:
+            v4_addresses.extend(interface[netifaces.AF_INET])
+        except KeyError:
+            pass
+    return v4_addresses
+            
+
+def find_usable_addresses(interface):
+    '''Helper function to evaluate valid RFC1918 addresses.
+    '''
+    for address in interface:
+        address_string = address.get('addr', '')
+        try:
+            v4_address = ipaddress.IPv4Address(address_string)
+        except ipaddress.AddressValueError:
+            pass
+        else:
+            if v4_address.is_private and not v4_address.is_loopback and not v4_address.is_link_local:
+                yield address_string
 
 
-def is_interface_valid(interface):
-    address = interface.get('addr', '')
-    try:
-        return address.is_private(address)
-    except ipaddress.AddressValueError:
-        return False
-
-
-def find_rfc1918(list_of_interfaces):
-    valid_interfaces = filter(is_interface_valid, list_of_interfaces)
-    return [interface['addr'] for interface in valid_interfaces]
+#def find_rfc1918(list_of_addresses):
+#    valid_interfaces = valid_addresses(list_of_interfaces)
+#    return [interface['addr'] for interface in valid_interfaces]
 
 
 '''
@@ -40,9 +53,10 @@ while True:
 '''
 
 def main():
-    local_i = available_ints()
+    local_i = available_addresses()
     print(local_i)
-    find_rfc1918(local_i)
-    pdb.set_trace()
+    print(list(find_usable_addresses(local_i)))
+
+
 if __name__ == "__main__":
     main()
