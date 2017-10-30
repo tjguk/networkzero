@@ -6,9 +6,14 @@ import random
 import shlex
 import socket
 
-import netifaces
+try:
+    import netifaces
+except ImportError:
+    warnings.warn("Unable to import netifaces; using local fallback")
+    from . import _netifaces as netifaces
 
 from . import config
+from . import _ip4
 
 def get_logger(name):
     #
