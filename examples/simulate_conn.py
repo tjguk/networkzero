@@ -26,13 +26,8 @@ def is_interface_valid(interface):
 
 
 def find_rfc1918(list_of_interfaces):
-    for int_dict in list_of_interfaces:
-        for nested_dict in int_dict:
-            try:
-                if ipaddress.IPv4Address(int_dict[nested_dict][0]['addr']).is_private():
-                    print("Your address is most likely: {}".format(int_dict[nested_dict][0]['addr']))
-            except:
-                pass
+    valid_interfaces = filter(is_interface_valid, list_of_interfaces)
+    return [interface['addr'] for interface in valid_interfaces]
 
 
 '''
