@@ -61,6 +61,7 @@ Read More
 .. toctree::
    :maxdepth: 2
    
+   installation
    usage
    for-teachers
    for-developers
