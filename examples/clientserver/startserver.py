@@ -4,11 +4,10 @@ A server listening on the first valid IPv4 address is then started.
 An exception is raised if no valid IPv4 addresses are found.
 '''
 
+import ipaddress
 import networkzero as nw0
 import netifaces
-import sys
-import ipaddress
-import pdb
+
 
 
 def available_addresses():
@@ -23,7 +22,7 @@ def available_addresses():
         except KeyError:
             pass
     return v4_addresses
-            
+
 
 def find_usable_addresses(interface):
     '''Helper function to evaluate valid RFC1918 addresses.
@@ -54,8 +53,8 @@ def main():
     #Flatten dictionary into a list
     server_address = list(find_usable_addresses(local_ips))
     try:
-       print("Starting server on IP address {}".format(server_address[0]))
-       start_server(server_address[0])
+        print("Starting server on IP address {}".format(server_address[0]))
+        start_server(server_address[0])
     except IndexError:
         print("Couldn't find any valid RFC 1918 addresses to bind server to")
 
