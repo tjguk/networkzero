@@ -1,5 +1,5 @@
 pyzmq
-netifaces
+netifaces>=10.6
 sphinx
 tox
 pytest
