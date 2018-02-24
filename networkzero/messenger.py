@@ -46,7 +46,7 @@ def send_reply_to(address, reply=EMPTY):
     _logger.debug("Sending reply %s to %s", reply, address)
     return sockets._sockets.send_reply_to(address, reply)
 
-def send_news_to(address, topic, data=None, raw=False):
+def send_news_to(address, topic, data=None):
     """Publish news to all subscribers
     
     :param address: a nw0 address, eg from `nw0.advertise`
@@ -54,12 +54,9 @@ def send_news_to(address, topic, data=None, raw=False):
     :param data: any simple Python object including test & tuples [default: empty]
     """
     _logger.info("Publish topic %s with data %s to %s", topic, data, address)
-    if raw:
-        return sockets._sockets.send_raw_news_to(address, topic, data)
-    else:
-        return sockets._sockets.send_news_to(address, topic, data)
+    return sockets._sockets.send_news_to(address, topic, data)
 
-def wait_for_news_from(address, prefix=config.EVERYTHING, wait_for_s=config.FOREVER, raw=False):
+def wait_for_news_from(address, prefix=config.EVERYTHING, wait_for_s=config.FOREVER, is_raw=False):
     """Wait for news whose topic starts with `prefix`.
     
     :param address: a nw0 address, eg from `nw0.discover`
@@ -69,8 +66,5 @@ def wait_for_news_from(address, prefix=config.EVERYTHING, wait_for_s=config.FORE
     :returns: a 2-tuple of (topic, data) or (None, None) if out of time
     """
     _logger.info("Listen on %s for news matching %s waiting for %s secs", address, prefix, wait_for_s)
-    if raw:
-        return sockets._sockets.wait_for_raw_news_from(address, prefix, wait_for_s)
-    else:
-        return sockets._sockets.wait_for_news_from(address, prefix, wait_for_s)
+    return sockets._sockets.wait_for_news_from(address, prefix, wait_for_s, is_raw)
 
