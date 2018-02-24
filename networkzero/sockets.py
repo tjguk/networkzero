@@ -22,12 +22,20 @@ def _unserialise(message_bytes):
 
 def _serialise_for_pubsub(topic, data):
     topic_bytes = topic.encode(config.ENCODING)
-    data_bytes = _serialise(data)
+    if isinstance(data, bytes):
+        data_bytes = data
+    else:
+        data_bytes = _serialise(data)
     return [topic_bytes, data_bytes]
 
-def _unserialise_for_pubsub(message_bytes):
+def _unserialise_for_pubsub(message_bytes, is_raw=False):
     topic_bytes, data_bytes = message_bytes
-    return topic_bytes.decode(config.ENCODING), _unserialise(data_bytes)
+    topic = topic_bytes.decode(config.ENCODING)
+    if is_raw:
+        data = data_bytes
+    else:
+        data = _unserialise(data_bytes)
+    return topic, data 
 
 class Socket(zmq.Socket):
 
@@ -247,7 +255,7 @@ class Sockets:
         socket = self.get_socket(address, "publisher")
         return socket.send_multipart(_serialise_for_pubsub(topic, data))
     
-    def wait_for_news_from(self, address, topic, wait_for_s):
+    def wait_for_news_from(self, address, topic, wait_for_s, is_raw=False):
         if isinstance(address, list):
             addresses = address
         else:
@@ -261,7 +269,7 @@ class Sockets:
             socket.set(zmq.SUBSCRIBE, t.encode(config.ENCODING))        
         try:
             result = self._receive_with_timeout(socket, wait_for_s, use_multipart=True)
-            unserialised_result = _unserialise_for_pubsub(result)
+            unserialised_result = _unserialise_for_pubsub(result, is_raw)
             return unserialised_result
         except (core.SocketTimedOutError, core.SocketInterruptedError):
             return None, None
