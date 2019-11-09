@@ -12,6 +12,24 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
     long_description = f.read()
 
+extras_require = {
+    "tests": [
+        "pytest",
+    ],
+    "docs": ["sphinx"],
+    "package": [
+        # Wheel building and PyPI uploading
+        "wheel",
+        "twine",
+    ],
+}
+
+extras_require["dev"] = (
+    extras_require["tests"]
+    + extras_require["docs"]
+    + extras_require["package"]
+)
+
 setup(
     name='networkzero',
 
@@ -48,7 +66,8 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
 
     install_requires=[
-        'pyzmq==16.0.3',
-        'netifaces==0.10.6',
+        'pynng',
+        'netifaces',
     ],
+    extras_require=extras_require,
 )
