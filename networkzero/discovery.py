@@ -275,7 +275,7 @@ class _Beacon(threading.Thread):
         else:
             return Continue
 
-    def do_discover_all(self, started_at):
+    def do_discover_all(self, started_at, wait_for_s):
         _logger.debug("Discover all")
         return [(service.name, service.address) for service in self._services_found.values()]
 
