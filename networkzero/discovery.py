@@ -216,6 +216,7 @@ class _Beacon(threading.Thread):
         _logger.debug("Advertise %s on %s %s TTL=%s", name, address, fail_if_exists, ttl_s)
         canonical_address = core.address(address)
 
+        superseded_services = set()
         for service in self._services_to_advertise:
             if service.name == name:
                 if fail_if_exists:
@@ -223,7 +224,10 @@ class _Beacon(threading.Thread):
                     return None
                 else:
                     _logger.warn("Superseding service %s which already exists on %s", name, service.address)
-                    self._services_to_advertise.remove(service)
+                    superseded_services.add(service)
+
+        for s in superseded_services:
+            self._services_to_advertise.remove(s)
 
         service = _Service(name, canonical_address, ttl_s)
         self._services_to_advertise.append(service)
