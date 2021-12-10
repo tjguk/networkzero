@@ -4,21 +4,21 @@
 The discovery module offers:
 
     * A UDP broadcast socket which:
-      
-      - Listens for and keeps track of service adverts from this and other 
+
+      - Listens for and keeps track of service adverts from this and other
         machines & processes
       - Broadcasts services advertised by this process
 
-    * A ZeroMQ socket which allow any process on this machine to 
+    * A ZeroMQ socket which allow any process on this machine to
       communicate with its broadcast socket
 
 In other words, we have a beacon which listens to instructions
-from processes on this machine while sending out and listening 
+from processes on this machine while sending out and listening
 to adverts broadcast to/from all machines on the network.
 
-The beacon is started automatically in a daemon thread when the first 
-attempt is made to advertise or discover. If another process already 
-has a beacon running (ie if this beacon can't bind to its port) this 
+The beacon is started automatically in a daemon thread when the first
+attempt is made to advertise or discover. If another process already
+has a beacon running (ie if this beacon can't bind to its port) this
 beacon thread will shut down with no further action.
 
 The module-level functions to advertise and discover will open a connection
@@ -66,7 +66,7 @@ def _unpack(message):
 
 def _pack(message):
     return json.dumps(message).encode(config.ENCODING)
-    
+
 def timed_out(started_at, wait_for_s):
     #
     # If the wait time is the sentinel value FOREVER, never time out
@@ -76,10 +76,10 @@ def timed_out(started_at, wait_for_s):
         return False
     else:
         return time.time() > started_at + wait_for_s
-    
+
 def _bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
     """Attempt to bind a socket a number of times with a short interval in between
-    
+
     Especially on Linux, crashing out of a networkzero process can leave the sockets
     lingering and unable to re-bind on startup. We give it a few goes here to see if
     we can bind within a couple of seconds.
@@ -102,39 +102,42 @@ def _bind_with_timeout(bind_function, args, n_tries=3, retry_interval_s=0.5):
 
 class _Service(object):
     """Convenience container with details of a service to be advertised
-    
+
     Includes the name, address and when it is next due to be advertised
     and when it is due to expire if it was discovered.
     """
-    
+
     def __init__(self, name, address, ttl_s=None):
         self.name = name
         self.address = address
         self.ttl_s = ttl_s
         self.expires_at = None if ttl_s is None else (time.time() + ttl_s)
         self.advertise_at = 0
-    
+
     def __str__(self):
         return "_Service %s at %s due to advertise at %s and expire at %s" % (
-            self.name, self.address, 
+            self.name, self.address,
             time.ctime(self.advertise_at), time.ctime(self.expires_at)
         )
-    
+
     def __repr__(self):
         return "<%s: %s>" % (self.__class__.__name__, str(self))
-    
+
     def __eq__(self, other):
         return self.name == other.name
 
+    def __hash__(self):
+        return hash(self.name)
+
 class _Command(object):
     """Convenience container with details of a running command
-    
+
     Includes the action ("discover", "advertise" etc.), its parameters, when
     it was started -- for timeout purposes -- and any response.
-    
+
     This is used by the process_command functionality
     """
-    
+
     def __init__(self, action, params):
         self.action = action
         self.params = params
@@ -142,27 +145,27 @@ class _Command(object):
         self.response = Empty
 
     def __str__(self):
-        return "_Command: %s (%s) started at %s -> %s" % (self.action, self.params, time.ctime(self.started_at), self.response) 
+        return "_Command: %s (%s) started at %s -> %s" % (self.action, self.params, time.ctime(self.started_at), self.response)
 
 class _Beacon(threading.Thread):
     """Threaded beacon to: listen for adverts & broadcast adverts
     """
-    
+
     rpc_port = 9998
     beacon_port = 9999
     finder_timeout_s = 0.05
     beacon_message_size = 256
     time_between_broadcasts_s = config.BEACON_ADVERT_FREQUENCY_S
-    
+
     def __init__(self, beacon_port=None):
         threading.Thread.__init__(self)
         self.setDaemon(True)
         self._stop_event = threading.Event()
         self._is_paused = False
-        
+
         self.beacon_port = beacon_port or self.__class__.beacon_port
         _logger.debug("Using beacon port %s", self.beacon_port)
-        
+
         #
         # Services we're advertising
         #
@@ -171,13 +174,13 @@ class _Beacon(threading.Thread):
         # Broadcast adverts which we've received (some of which will be our own)
         #
         self._services_found = {}
-        
+
         #
         # _Command requests are collected on one queue
         # _Command responses are added to another
         #
         self._command = None
-        
+
         #
         # Set the socket up to broadcast datagrams over UDP
         #
@@ -196,7 +199,7 @@ class _Beacon(threading.Thread):
         self.rpc = sockets.context.socket(zmq.REP)
         #
         # To avoid problems when restarting a beacon not long after it's been
-        # closed, force the socket to shut down regardless about 1 second after 
+        # closed, force the socket to shut down regardless about 1 second after
         # it's been closed.
         #
         self.rpc.linger = 1000
@@ -212,7 +215,7 @@ class _Beacon(threading.Thread):
     def do_advertise(self, started_at, name, address, fail_if_exists, ttl_s):
         _logger.debug("Advertise %s on %s %s TTL=%s", name, address, fail_if_exists, ttl_s)
         canonical_address = core.address(address)
-        
+
         for service in self._services_to_advertise:
             if service.name == name:
                 if fail_if_exists:
@@ -220,6 +223,7 @@ class _Beacon(threading.Thread):
                     return None
                 else:
                     _logger.warn("Superseding service %s which already exists on %s", name, service.address)
+                    self._services_to_advertise.remove(service)
 
         service = _Service(name, canonical_address, ttl_s)
         self._services_to_advertise.append(service)
@@ -227,9 +231,9 @@ class _Beacon(threading.Thread):
         # As a shortcut, automatically "discover" any services we ourselves are advertising
         #
         self._services_found[name] = service
-            
+
         return canonical_address
-    
+
     def do_unadvertise(self, started_at, name):
         _logger.debug("Unadvertise %s", name)
         for service in self._services_to_advertise:
@@ -239,15 +243,15 @@ class _Beacon(threading.Thread):
         else:
             _logger.warn("No advert found for %s", name)
         _logger.debug("Services now: %s", self._services_to_advertise)
-    
+
     def do_pause(self, started_at):
         _logger.debug("Pause")
         self._is_paused = True
-    
+
     def do_resume(self, started_at):
         _logger.debug("Resume")
         self._is_paused = False
-    
+
     def do_discover(self, started_at, name, wait_for_s):
         _logger.debug("Discover %s waiting for %s seconds", name, wait_for_s)
 
@@ -261,30 +265,30 @@ class _Beacon(threading.Thread):
         #
         if discovered:
             return discovered.address
-        
+
         if timed_out(started_at, wait_for_s):
             return None
         else:
             return Continue
-                
+
     def do_discover_all(self, started_at):
         _logger.debug("Discover all")
         return [(service.name, service.address) for service in self._services_found.values()]
-    
+
     def do_reset(self, started_at):
         _logger.debug("Reset")
         self.do_pause(started_at)
         self._services_found.clear()
         self._services_to_advertise.clear()
         self.do_resume(started_at)
-    
+
     def do_stop(self, started_at):
         _logger.debug("Stop")
         self.stop()
-    
+
     def listen_for_one_advert(self):
         events = dict(self.poller.poll(1000 * self.finder_timeout_s))
-        if self.socket_fd not in events: 
+        if self.socket_fd not in events:
             return
 
         message, source = self.socket.recvfrom(self.beacon_message_size)
@@ -308,7 +312,7 @@ class _Beacon(threading.Thread):
     def remove_expired_adverts(self):
         for name, service in list(self._services_found.items()):
             #
-            # A service with an empty expiry time never expired
+            # A service with an empty expiry time never expires
             #
             if service.expires_at is None:
                 continue
@@ -353,9 +357,9 @@ class _Beacon(threading.Thread):
             except:
                 _logger.exception("Problem calling %s with %s", command.action, command.params)
                 result = None
-            
+
             _logger.debug("result = %s", result)
-            
+
             #
             # result will be Continue if the action cannot be completed
             # (eg a discovery) but its time is not yet expired. Leave
@@ -363,7 +367,7 @@ class _Beacon(threading.Thread):
             #
             if result is Continue:
                 return
-            
+
             #
             # If we get a result, add the result to the response
             # queue and pop the request off the stack.
@@ -378,11 +382,11 @@ class _Beacon(threading.Thread):
             _logger.debug("Sending response %s", self._command.response)
             self.rpc.send(_pack(self._command.response))
             self._command = None
-                
+
     def run(self):
         _logger.info("Starting discovery")
         while not self._stop_event.wait(0):
-            
+
             try:
                 #
                 # If we're not already processing one, check for an command
@@ -401,17 +405,17 @@ class _Beacon(threading.Thread):
                     # has arrived
                     #
                     self.broadcast_one_advert()
-                
+
                 #
                 # See if an advert broadcast has arrived
                 #
                 self.listen_for_one_advert()
-                
+
                 #
                 # See if any adverts have expired
                 #
                 self.remove_expired_adverts()
-                
+
                 #
                 # If we're processing a command, see if it's complete
                 #
@@ -422,7 +426,7 @@ class _Beacon(threading.Thread):
             except:
                 _logger.exception("Problem in beacon thread")
                 break
-        
+
         _logger.info("Ending discovery")
         self.rpc.close()
         self.socket.close()
@@ -433,7 +437,7 @@ _remote_beacon = object()
 def _start_beacon(port=None):
     """Start a beacon thread within this process if no beacon is currently
     running on this machine.
-    
+
     In general this is called automatically when an attempt is made to
     advertise or discover. It might be convenient, though, to call this
     function directly if you want to have a process whose only job is
@@ -478,7 +482,7 @@ def _rpc(action, *args, **kwargs):
     with sockets.context.socket(zmq.REQ) as socket:
         #
         # To avoid problems when restarting a beacon not long after it's been
-        # closed, force the socket to shut down regardless about 1 second after 
+        # closed, force the socket to shut down regardless about 1 second after
         # it's been closed.
         #
         socket.connect("tcp://localhost:%s" % _Beacon.rpc_port)
@@ -496,13 +500,13 @@ _services_advertised = {}
 
 def advertise(name, address=None, fail_if_exists=False, ttl_s=config.ADVERT_TTL_S):
     """Advertise a name at an address
-    
+
     Start to advertise service `name` at address `address`. If
     the address is not supplied, one is constructed and this is
     returned by the function. ie this is a typical use::
-    
+
         address = nw0.advertise("myservice")
-        
+
     :param name: any text
     :param address: either "ip:port" or None
     :param fail_if_exists: fail if this name is already registered?
@@ -527,7 +531,7 @@ atexit.register(_unadvertise_all)
 
 def _unadvertise(name):
     """Remove the advert for a name
-    
+
     This is intended for internal use only at the moment. When a process
     exits it can remove adverts for its services from the beacon running
     on that machine. (Of course, if the beacon thread is part of of the
@@ -538,11 +542,11 @@ def _unadvertise(name):
 
 def discover(name, wait_for_s=60):
     """Discover a service by name
-    
+
     Look for an advert to a named service::
-    
+
         address = nw0.discover("myservice")
-        
+
     :param name: any text
     :param wait_for_s: how many seconds to wait before giving up
     :returns: the address found or None
@@ -566,32 +570,48 @@ def discover(name, wait_for_s=60):
         if timed_out(t0, wait_for_s):
             return None
 
-def discover_all():
+def discover_all(wait_for_s=60):
     """Produce a list of all known services and their addresses
-    
+
     Ask for all known services as a list of 2-tuples: (name, address)
     This could, eg, be used to form a dictionary of services::
-    
+
         services = dict(nw0.discover_all())
-        
+
     :returns: a list of 2-tuples [(name, address), ...]
     """
     _start_beacon()
-    return _rpc("discover_all")
+    #
+    # It's possible to enter a deadlock situation where the first
+    # process fires off a discovery request and waits for the
+    # second process to advertise. But the second process has to
+    # connect to the rpc port of the first process' beacon and
+    # its advertisement is queued behind the pending discovery.
+    #
+    # To give both a chance of succeeding we operate in bursts,
+    # allowing them to interleave.
+    #
+    t0 = time.time()
+    while True:
+        discovery = _rpc("discover_all", 0.5)
+        if discovery:
+            return discovery
+        if timed_out(t0, wait_for_s):
+            return None
 
 def discover_group(group, separator="/", exclude=None):
     """Produce a list of all services and their addresses in a group
-    
+
     A group is an optional form of namespace within the discovery mechanism.
     If an advertised name has the form <group><sep><name> it is deemed to
     belong to <group>. Note that the service's name is still the full
     string <group><sep><name>. The group concept is simply for discovery and
     to assist differentiation, eg, in a classroom group.
-    
+
     :param group: the name of a group prefix
     :param separator: the separator character [/]
     :param exclude: an iterable of names to exclude (or None)
-    
+
     :returns: a list of 2-tuples [(name, address), ...]
     """
     _start_beacon()
@@ -600,15 +620,15 @@ def discover_group(group, separator="/", exclude=None):
     else:
         names_to_exclude = set(exclude)
     all_discovered = _rpc("discover_all")
-    return [(name, address) 
-        for (name, address) in all_discovered 
+    return [(name, address)
+        for (name, address) in all_discovered
         if name.startswith("%s%s" % (group, separator))
         and name not in names_to_exclude
     ]
 
 def reset_beacon():
     """Clear the adverts which the beacon is carrying
-    
+
     (This is mostly useful when testing, to get a fresh start)
     """
     _start_beacon()
